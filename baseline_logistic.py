@@ -35,6 +35,7 @@ def optimize(model, data):
     """
     Optimize on the training set
     """
+    print('*******Training*******')
     criterion = torch.nn.BCELoss(size_average=True) # binary logarithmic loss function
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
@@ -89,6 +90,7 @@ def test(model, test_data):
     """
     Compute the model's accuracy on the test set
     """
+    print('*******Testing*******')
     num_correct = 0
     total = 0
     for x,y in test_data:
