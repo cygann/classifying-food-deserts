@@ -71,9 +71,12 @@ class CensusReader:
         values = []
         for y in range(start_year, end_year + 1):
             res = self.reader.acs5.zipcode(field_ids, zipcode, year=y)
-            # if this is empty, return -1 to indicate this.
-            if len(res) == 0: return -1
-            value = sum([int(res[0][key]) for key in field_ids])
+            try:
+                print(res)
+                value = sum([int(res[0][key]) for key in field_ids])
+            except IndexError:
+                print(res)
+                raise
 
             values.append(value)
         return np.array(values)
