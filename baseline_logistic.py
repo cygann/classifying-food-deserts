@@ -28,7 +28,7 @@ class LogisticRegressionModel(nn.Module):
         self.linear = nn.Linear(input_dim, output_dim)
 
     def forward(self, x):
-        out = torch.sigmoid(self.linear(x))
+        out = self.linear(x)
         return out
 
 def optimize(model, data):
@@ -36,55 +36,69 @@ def optimize(model, data):
     Optimize on the training set
     """
     print('*******Training*******')
-    criterion = torch.nn.BCELoss(size_average=True) # binary logarithmic loss function
+    # criterion = torch.nn.BCELoss(size_average=True) # binary logarithmic loss function
+    criterion = nn.CrossEntropyLoss() 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
     epochs = 5
     iter = 0
     for epoch in range(epochs):
         print('EPOCH', epoch)
-        for x,y in data:
+        for i in range(len(data)):
+
             # print('Zipcode:', ZIPCODES[i])
             # x, y = data[i]
             # x = valueToTensor(x)
             # y = valueToTensor(y)
             # y = y.reshape(1)
-            x = Variable(valueToTensor(x))
-            y = Variable(valueToTensor(y))
-            # print('x is:', x)
-            # print('y is:', y)
+            x, y = data[i]
+            x = Variable(xToTensor(x))
+            y = Variable(yToTensor(y))
 
             optimizer.zero_grad()
 
             # Forward pass
             pred = model(x) 
-            # print('pred is', pred.data[0])
+            # print('pred is', pred.data)
+            pred.unsqueeze_(0) # add a dimension before passing to criterion
+            # print('pred is', pred.data)
 
-            # Compute loss
+            # pred_resized =  # need to resize for CrossEntropyLoss
+            # print('pred_resized is', pred_resized.data)
+
+            # Compute loss: softmax --> cross entropy loss
             loss = criterion(pred, y)
 
             # Backward pass
             loss.backward()
             optimizer.step()
 
-            iter+=1
+            iter += 1
             if iter % 1 == 0:
                 # Calculate accuracy on TRAINING set
                 num_correct = 0
                 total = 0
                 for x, y in data:
-                    x = Variable(valueToTensor(x))
+                    x = Variable(xToTensor(x))
                     pred = model(x)
+                    
                     _, predicted = torch.max(pred.data, 0)
+                    print("predicted:", predicted)
                     total += 1
                     # for gpu, bring the predicted and labels back to cpu fro python operations to work
-                    num_correct = (num_correct+1 if (predicted == y) else num_correct)
-                    # print('num_correct:', num_correct, ' total', total)
+                    print('y in accuracy checking:', y)
+                    num_correct = (num_correct+1 if (predicted.unsqueeze(0) == y) else num_correct)
+                    print('num_correct:', num_correct, ' total', total)
                 accuracy = 100.0 * num_correct/total
                 print('Iteration: {}. Loss: {}. Train Accuracy: {}.'.format(iter, loss.item(), accuracy))
         print()
-def valueToTensor(v):
-    return torch.tensor(v).float()
+
+def xToTensor(x):
+    return torch.tensor(x).float()
+
+def yToTensor(y):
+    return torch.LongTensor([y])
+    
 
 def test(model, test_data):
     """
@@ -94,7 +108,7 @@ def test(model, test_data):
     num_correct = 0
     total = 0
     for x,y in test_data:
-        x = Variable(valueToTensor(x))
+        x = Variable(xToTensor(x))
         pred = model(x)
         _, predicted = torch.max(pred.data, 0)
         total += 1
@@ -148,12 +162,14 @@ def main():
     #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # Open pickle file - only do after it has been saved (above)
-    data = None
+    data = None # ([features], label)
     with open(PATH_DATA_PICKLE, 'rb') as fp:
         data = pickle.load(fp)
 
-    input_dim = 3 # the number of factors
-    output_dim = 1 # binary classification
+
+    input_dim = len(data[0][0]) # the number of factors
+    print('input_dim:', input_dim)
+    output_dim = 2 # binary classification
 
     model = LogisticRegressionModel(input_dim, output_dim)
     optimize(model, data[0:-1]) # train on all but last zipcode
