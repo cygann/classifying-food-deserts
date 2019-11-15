@@ -20,7 +20,7 @@ ANY_COLLEGE_EDUC = [EDUC_ASSOCIATES_M, EDUC_ASSOCIATES_F, EDUC_BACHELORS_M,
         EDUC_PROFESSIONAL_F, EDUC_DOCTORATE_M, EDUC_DOCTORATE_F]
 DATA = []
 
-PATH_DATA_PICKLE = '/Users/Priscilla/Desktop/Classes/Fall 2019/CS221/cs221-project/baseline_pickle_files/census_data_for_baseline.pickle'
+PATH_DATA_PICKLE = './baseline_pickle_files/census_data_for_baseline_linear.pickle'
 
 class LogisticRegressionModel(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -83,12 +83,9 @@ def optimize(model, data):
                     pred = model(x)
                     
                     _, predicted = torch.max(pred.data, 0)
-                    print("predicted:", predicted)
                     total += 1
                     # for gpu, bring the predicted and labels back to cpu fro python operations to work
-                    print('y in accuracy checking:', y)
                     num_correct = (num_correct+1 if (predicted.unsqueeze(0) == y) else num_correct)
-                    print('num_correct:', num_correct, ' total', total)
                 accuracy = 100.0 * num_correct/total
                 print('Iteration: {}. Loss: {}. Train Accuracy: {}.'.format(iter, loss.item(), accuracy))
         print()
