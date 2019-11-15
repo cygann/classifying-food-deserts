@@ -174,11 +174,8 @@ def main():
     # with open(PATH_DATA_PICKLE, 'rb') as fp:
         # data = pickle.load(fp)
 
-    
-    # ------ Processing new data format
     data = read_data_from_pickle()
     data = list(data.values())
-    # ------
 
     input_dim = len(data[0][0]) # the number of factors
     print('input_dim:', input_dim)
