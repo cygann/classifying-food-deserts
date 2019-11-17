@@ -19,9 +19,6 @@ ANY_COLLEGE_EDUC = [EDUC_ASSOCIATES_M, EDUC_ASSOCIATES_F, EDUC_BACHELORS_M,
         EDUC_PROFESSIONAL_F, EDUC_DOCTORATE_M, EDUC_DOCTORATE_F]
 DATA = []
 
-FULL_DATA_PICKLE = (
-        '/Users/nataliecygan/Desktop/Stanford/cs221/project/data/pickle/data.pickle')
-
 class LinearRegressionModel(nn.Module):
         def __init__(self):
                 super().__init__()

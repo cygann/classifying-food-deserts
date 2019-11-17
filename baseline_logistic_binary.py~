@@ -103,9 +103,6 @@ def test(model, test_data):
         pred = model(x)
         _, predicted = torch.max(pred.data, 0)
         total += 1
-        print('x:', x, 'y:', y)
-        if predicted == y: print('Correct')
-        else: print('Incorrect')
         num_correct = (num_correct+1 if (predicted == y) else num_correct)
         # print('num_correct:', num_correct, ' total', total)
     accuracy = 100.0 * num_correct/total

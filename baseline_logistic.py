@@ -8,6 +8,7 @@ from scipy.optimize import curve_fit
 from census_reader import *
 from tqdm import trange
 import pickle
+import random
 
 
 ZIPCODE = 95131
@@ -34,7 +35,7 @@ class LogisticRegressionModel(nn.Module):
         out = self.linear(x)
         return out
 
-def optimize(model, data):
+def optimize(model, data, verbose=False):
     """
     Optimize on the training set
     """
@@ -86,15 +87,15 @@ def optimize(model, data):
                     pred = model(x)
                     
                     _, predicted = torch.max(pred.data, 0)
-                    print("predicted:", predicted)
+                    if verbose: print("predicted:", predicted)
                     total += 1
                     # for gpu, bring the predicted and labels back to cpu fro python operations to work
-                    print('y in accuracy checking:', y)
+                    if verbose: print('y in accuracy checking:', y)
                     num_correct = (num_correct+1 if (predicted.unsqueeze(0) == y) else num_correct)
-                    print('num_correct:', num_correct, ' total', total)
+                    if verbose: print('num_correct:', num_correct, ' total', total)
                 accuracy = 100.0 * num_correct/total
-                print('Iteration: {}. Loss: {}. Train Accuracy: {}.'.format(iter, loss.item(), accuracy))
-        print()
+            print('Iteration: {}. Loss: {}. Train Accuracy: {}.'.format(iter, loss.item(), accuracy))
+        if verbose: print()
 
 def xToTensor(x):
     return torch.tensor(x).float()
@@ -178,15 +179,24 @@ def main():
     # ------ Processing new data format
     data = read_data_from_pickle()
     data = list(data.values())
+    # print(len(data))
+    # return
+    
     # ------
+
+    random.shuffle(data)
+    train_data = data[0:150]
+    test_data = data[150:]
+    print('train data size:', len(train_data))
+    print('test data size:', len(test_data))
 
     input_dim = len(data[0][0]) # the number of factors
     print('input_dim:', input_dim)
     output_dim = 2 # binary classification
 
     model = LogisticRegressionModel(input_dim, output_dim)
-    optimize(model, data[0:-1]) # train on all but last zipcode
-    test(model, [data[-1]]) # test on last zipcode
+    optimize(model, train_data) # train on all but last zipcode
+    test(model, test_data) # test on last zipcode
 
     print("\nSuccess")
 
