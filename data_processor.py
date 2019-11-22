@@ -25,20 +25,54 @@ LABELS_PICKLE = (
 FULL_DATA_PICKLE = (
         '/Users/nataliecygan/Desktop/Stanford/cs221/project/data/pickle/data.pickle')
 
+"""
+Parses a census api variable file. Each row contains one or more census
+variables. If a row contains multiple variables, then these quantities are
+summed together to create one census feature, which is useful for things like #
+people with associates, # people with masters, etc. 
+
+The special token at the beginning of a line 'N' indicates that this feature
+should be normalized to the population, to create a percentage feature. An
+example of this is a row that represents the number of individuals with higher
+education in a zipcode, which is converted into a percentage instead of a raw
+count.
+
+Any token that starts with a '#' triggers the reader to stop reading the current
+line as it denotes a comment.
+
+Note: Every token must be separated by ',', even special ones.
+
+Returns: a list of tuples called unique_ids which contains (variables, nomalize) 
+tuples, where variables is the list of census variables to sum for one feature
+and normalize is a boolean indicating whether this feature should be normalized
+to the zip code's population.
+"""
 def read_census_field_file(path):
     unique_ids = []
     with open(path, 'r') as f:
         lines = f.readlines()
         for line in lines:
-            variables = []
+            variables = [] # Hold all variables that need to be summed.
+            # Denote whether or not this field should be normalized to the
+            # population count.
+            normalize = False
+
             tokens = line.split(',')
-            for t in tokens:
+            start = 0
+
+            # 'N' is a  special token that denotes this field needing to be
+            # normalized by the population.
+            if tokens[0].strip() == 'N':
+                normalize = True
+                start = 1 # Skip normalized token
+
+            for t in tokens[start:]:
                 cleaned = t.strip()
                 # Line starting with '#' indicates comment, stop reading line.
                 if cleaned[0] == '#': break
                 variables.append(cleaned)
 
-            unique_ids.append(variables)
+            unique_ids.append((variables, normalize))
 
     return unique_ids
 
@@ -75,7 +109,7 @@ def obtain_features_from_census(reader, labels, start_year, end_year, unique_ids
         # Must get populatation data in order for reader.normalizeToPopulation
         # to work. This will always be the first item in unique_ids.
         assert(len(unique_ids) >= 1)
-        population = reader.getDataOverInterval(unique_ids[0], zipcode,
+        population = reader.getDataOverInterval(unique_ids[0][0], zipcode,
                 start_year, end_year)
         features.append(population)
 
@@ -83,9 +117,12 @@ def obtain_features_from_census(reader, labels, start_year, end_year, unique_ids
         # together. The reader.getDataOverInterval function handles this summing
         # for us; it just requires a list of variables.
         for variable_set in unique_ids[1:]:
+            variables = variable_set[0]
+            normalize = variable_set[1]
+
             # Ensure that the zipcode is successfully read.
             try:
-                var_data = reader.getDataOverInterval(variable_set, zipcode,
+                var_data = reader.getDataOverInterval(variables, zipcode,
                         start_year, end_year)
             except Exception:
                 valid_zip = False
@@ -99,8 +136,11 @@ def obtain_features_from_census(reader, labels, start_year, end_year, unique_ids
                 error_zips.append(zipcode)
                 break
 
-            var_percent = reader.normalizeToPopulation(population, var_data)
-            features.append(var_percent)
+            # Only normalize this feature if requested.
+            if normalize:
+                var_data = reader.normalizeToPopulation(population, var_data)
+
+            features.append(var_data)
 
         # If this is no longer a valid zipcode due to census API errors, skip
         # the rest of this code.
@@ -144,7 +184,8 @@ def main():
     # Get labels to build full dataset from
     labels = read_labels()
     #labels = labels_sample
-    labels = {z : labels[z] for z in list(random.sample(labels.keys(), 300))}
+    # labels = {z : labels[z] for z in list(random.sample(labels.keys(), 300))}
+    labels = {z : labels[z] for z in list(labels.keys())[50:70]}
 
     # Get the full data fold from the census.
     data = obtain_features_from_census(reader, labels, 2015, 2015, unique_ids)
