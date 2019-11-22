@@ -9,6 +9,8 @@ from census_reader import *
 from tqdm import trange
 import pickle
 import random
+from multiprocessing.pool import ThreadPool
+from functools import partial
 
 ZIPCODES_ = [95131, 36003, 60649, 14075, 19149] # Must be of length 2 or more
 LABELS_ = [0, 1, 1, 0, 0] # 0 = Not food desert, 1 = food desert
@@ -76,31 +78,9 @@ def read_census_field_file(path):
 
     return unique_ids
 
-"""
-Obtains the census features for all datapoints using the census API. This
-funciton returns the full dataset as a dict, which maps zipcodes to a tuple
-containing their census feature vector and food desert label. This data dict is
-saved to a .pickle file and is also returned by the function.
-
-Parameters:
-    reader : an Census reader object that will obtain values from the census API.
-    labels : a dict that maps zipcodes to binary food desert flags (labels)
-    start_year : the starting year for the interval over which the data is
-        desired to be extracted.
-    end_year : the ending year for the interval over which the data is
-        desired to be extracted. (Inclusive)
-    unique_ids : a list containing the census data variables. An example of one
-        such value is 'B00001_001E', which is the Census Data API variable for the
-        total population.
-"""
-def obtain_features_from_census(reader, labels, start_year, end_year, unique_ids):
-    data = {}
-    zipcodes = list(labels.keys()) # The keys to the labels dict are the zips
-    error_zips = []
-
-    for i in trange(len(zipcodes)):
-        zipcode = zipcodes[i]
-        label = labels[zipcode]
+def fetch_features(reader, start_year, end_year, unique_ids, datapoint):
+        zipcode = datapoint[0]
+        label = datapoint[1]
         features = []
 
         # Store zipcodes that don't properly read.
@@ -126,14 +106,12 @@ def obtain_features_from_census(reader, labels, start_year, end_year, unique_ids
                         start_year, end_year)
             except Exception:
                 valid_zip = False
-                error_zips.append(zipcode)
                 break
 
             # It's possible no exception was thrown, but the zipcode could just
             # have no data.
             if var_data == -1:
                 valid_zip = False
-                error_zips.append(zipcode)
                 break
 
             # Only normalize this feature if requested.
@@ -144,13 +122,60 @@ def obtain_features_from_census(reader, labels, start_year, end_year, unique_ids
 
         # If this is no longer a valid zipcode due to census API errors, skip
         # the rest of this code.
-        if not valid_zip: continue
+        if not valid_zip: return None
 
         out = np.concatenate(features)
-        data[zipcode] = (out, label)
+        return (zipcode, out, label)
+
+
+"""
+Obtains the census features for all datapoints using the census API. This
+funciton returns the full dataset as a dict, which maps zipcodes to a tuple
+containing their census feature vector and food desert label. This data dict is
+saved to a .pickle file and is also returned by the function.
+
+Parameters:
+    reader : an Census reader object that will obtain values from the census API.
+    labels : a dict that maps zipcodes to binary food desert flags (labels)
+    start_year : the starting year for the interval over which the data is
+        desired to be extracted.
+    end_year : the ending year for the interval over which the data is
+        desired to be extracted. (Inclusive)
+    unique_ids : a list containing the census data variables. An example of one
+        such value is 'B00001_001E', which is the Census Data API variable for the
+        total population.
+"""
+def obtain_features_from_census(reader, labels, start_year, end_year,
+        unique_ids, threads=10):
+    zipcodes = list(labels.keys()) # The keys to the labels dict are the zips
+    
+    # Create an iterable of tuples ready for multithreading
+    iterable = []
+    for i in range(len(zipcodes)):
+        zipcode = zipcodes[i]
+        label = labels[zipcode]
+        iterable.append((zipcode, label))
+
+    # Watch it fly!
+    pool = ThreadPool(threads)
+    func = partial(fetch_features, reader, start_year, end_year, unique_ids)
+    results = pool.map(func, iterable)
+
+    # Final post-processing to get data map.
+    data = {}
+    error_zips = 0
+    for i in trange(len(results)):
+        item = results[i]
+        if item == None: 
+            error_zips += 1
+            continue # Skip the invalid zips
+        zipcode = item[0]
+        features = item[1]
+        label = item[2]
+        data[zipcode] = (features, label)
 
     print('Successfully created', len(data), 'data points.')
-    print('Had an issue reading', len(error_zips), 'data points. These were excluded from the dataset.')
+    print('Had an issue reading', error_zips, 'data points. These were excluded from the dataset.')
 
     # Save as .pickle file.
     with open(FULL_DATA_PICKLE, 'wb') as handle:
@@ -185,7 +210,7 @@ def main():
     labels = read_labels()
     #labels = labels_sample
     # labels = {z : labels[z] for z in list(random.sample(labels.keys(), 300))}
-    labels = {z : labels[z] for z in list(labels.keys())[50:70]}
+    labels = {z : labels[z] for z in list(labels.keys())[:20]}
 
     # Get the full data fold from the census.
     data = obtain_features_from_census(reader, labels, 2015, 2015, unique_ids)
