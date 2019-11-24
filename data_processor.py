@@ -1,4 +1,5 @@
 import math
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -25,10 +26,14 @@ for i in range(len(ZIPCODES_)):
     
 
 # Contains map of zipcodes to binary food desert labels.
-LABELS_PICKLE = (
-        '/Users/nataliecygan/Desktop/Stanford/cs221/project/data/pickle/labels.pickle')
-FULL_DATA_PICKLE = (
-        '/Users/nataliecygan/Desktop/Stanford/cs221/project/data/pickle/data.pickle')
+# LABELS_PICKLE = (
+        # '/Users/nataliecygan/Desktop/Stanford/cs221/project/data/pickle/labels.pickle')
+# FULL_DATA_PICKLE = (
+        # '/Users/nataliecygan/Desktop/Stanford/cs221/project/data/pickle/data.pickle')
+
+path_to_script = os.path.dirname(os.path.abspath(__file__))
+LABELS_PICKLE = os.path.join(path_to_script, "data/labels.pickle")
+FULL_DATA_PICKLE = os.path.join(path_to_script, "data/data.pickle")
 
 """
 Parses a census api variable file. Each row contains one or more census
