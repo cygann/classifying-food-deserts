@@ -75,7 +75,7 @@ class CensusReader:
                 try:
                     res = self.reader.acs5.zipcode(field_ids, zipcode, year=y)
                     break # If we get here, there was no exception.
-                except CensusException:
+                except census.core.CensusException:
                     pass # Just try again until we get a connection.
 
             # if this is empty, return -1 to indicate this.
