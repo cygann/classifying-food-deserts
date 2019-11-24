@@ -70,7 +70,14 @@ class CensusReader:
         """
         values = []
         for y in range(start_year, end_year + 1):
-            res = self.reader.acs5.zipcode(field_ids, zipcode, year=y)
+            res = None
+            while True:
+                try:
+                    res = self.reader.acs5.zipcode(field_ids, zipcode, year=y)
+                    break # If we get here, there was no exception.
+                except CensusException:
+                    pass # Just try again until we get a connection.
+
             # if this is empty, return -1 to indicate this.
             if len(res) == 0: return -1
             value = sum([int(res[0][key]) for key in field_ids])
