@@ -1,11 +1,6 @@
 import math
 import os
 import numpy as np
-import torch
-import torch.nn as nn
-from torch.autograd import Variable
-from torch.optim import Adam
-from scipy.optimize import curve_fit
 from census_reader import *
 from tqdm import trange
 from tqdm import tqdm
@@ -23,14 +18,8 @@ for i in range(len(ZIPCODES_)):
     zipcode = str(ZIPCODES_[i])
     label = LABELS_[i]
     labels_sample[zipcode] = label
-    
 
 # Contains map of zipcodes to binary food desert labels.
-# LABELS_PICKLE = (
-        # '/Users/nataliecygan/Desktop/Stanford/cs221/project/data/pickle/labels.pickle')
-# FULL_DATA_PICKLE = (
-        # '/Users/nataliecygan/Desktop/Stanford/cs221/project/data/pickle/data.pickle')
-
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 LABELS_PICKLE = os.path.join(path_to_script, "data/labels.pickle")
 FULL_DATA_PICKLE = os.path.join(path_to_script, "data/data.pickle")
@@ -86,11 +75,21 @@ def read_census_field_file(path):
 
     return unique_ids
 
+"""
+Function for separate tqdm process that updates the progress bar during a
+parallelized data batch generation. Each time a zipcode is done being processed,
+this is called upon for the bar to update.
+"""
 def tqdm_listener(q):
     pbar = tqdm(total=BATCH_SIZE)
     for item in iter(q.get, None):
         pbar.update()
 
+"""
+Function for paralell data processing processes. This will fetch the data
+features for a single datapoint and place the (features, label) tuple into the
+results dict.
+"""
 def fetch_features(reader, start_year, end_year, unique_ids, datapoint,
         results, q):
     zipcode = datapoint[0]
