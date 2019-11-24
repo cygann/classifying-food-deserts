@@ -7,10 +7,13 @@ from torch.optim import Adam
 from scipy.optimize import curve_fit
 from census_reader import *
 from tqdm import trange
+from tqdm import tqdm
 import pickle
 import random
-from multiprocessing.pool import ThreadPool
+import multiprocessing
 from functools import partial
+
+BATCH_SIZE = 20
 
 ZIPCODES_ = [95131, 36003, 60649, 14075, 19149] # Must be of length 2 or more
 LABELS_ = [0, 1, 1, 0, 0] # 0 = Not food desert, 1 = food desert
@@ -78,54 +81,63 @@ def read_census_field_file(path):
 
     return unique_ids
 
-def fetch_features(reader, start_year, end_year, unique_ids, datapoint):
-        zipcode = datapoint[0]
-        label = datapoint[1]
-        features = []
+def tqdm_listener(q):
+    pbar = tqdm(total=BATCH_SIZE)
+    for item in iter(q.get, None):
+        pbar.update()
 
-        # Store zipcodes that don't properly read.
-        valid_zip = True
+def fetch_features(reader, start_year, end_year, unique_ids, datapoint,
+        results, q):
+    zipcode = datapoint[0]
+    label = datapoint[1]
+    features = []
 
-        # Must get populatation data in order for reader.normalizeToPopulation
-        # to work. This will always be the first item in unique_ids.
-        assert(len(unique_ids) >= 1)
-        population = reader.getDataOverInterval(unique_ids[0][0], zipcode,
-                start_year, end_year)
-        features.append(population)
+    # Store zipcodes that don't properly read.
+    valid_zip = True
 
-        # Each entry in unique_ids is a list of census variables that get summed
-        # together. The reader.getDataOverInterval function handles this summing
-        # for us; it just requires a list of variables.
-        for variable_set in unique_ids[1:]:
-            variables = variable_set[0]
-            normalize = variable_set[1]
+    # Must get populatation data in order for reader.normalizeToPopulation
+    # to work. This will always be the first item in unique_ids.
+    assert(len(unique_ids) >= 1)
+    population = reader.getDataOverInterval(unique_ids[0][0], zipcode,
+            start_year, end_year)
+    features.append(population)
 
-            # Ensure that the zipcode is successfully read.
-            try:
-                var_data = reader.getDataOverInterval(variables, zipcode,
-                        start_year, end_year)
-            except Exception:
-                valid_zip = False
-                break
+    # Each entry in unique_ids is a list of census variables that get summed
+    # together. The reader.getDataOverInterval function handles this summing
+    # for us; it just requires a list of variables.
+    for variable_set in unique_ids[1:]:
+        variables = variable_set[0]
+        normalize = variable_set[1]
 
-            # It's possible no exception was thrown, but the zipcode could just
-            # have no data.
-            if var_data == -1:
-                valid_zip = False
-                break
+        # Ensure that the zipcode is successfully read.
+        try:
+            var_data = reader.getDataOverInterval(variables, zipcode,
+                    start_year, end_year)
+        except Exception:
+            valid_zip = False
+            break
 
-            # Only normalize this feature if requested.
-            if normalize:
-                var_data = reader.normalizeToPopulation(population, var_data)
+        # It's possible no exception was thrown, but the zipcode could just
+        # have no data.
+        if var_data == -1:
+            valid_zip = False
+            break
 
-            features.append(var_data)
+        # Only normalize this feature if requested.
+        if normalize:
+            var_data = reader.normalizeToPopulation(population, var_data)
 
-        # If this is no longer a valid zipcode due to census API errors, skip
-        # the rest of this code.
-        if not valid_zip: return None
+        features.append(var_data)
 
+    # If this is no longer a valid zipcode due to census API errors, skip
+    # the rest of this code.
+    if not valid_zip: 
+        results[zipcode] = None
+    else:
         out = np.concatenate(features)
-        return (zipcode, out, label)
+        results[zipcode] = (out, label)
+
+    q.put(1) # Update progress bar.
 
 
 """
@@ -146,32 +158,49 @@ Parameters:
         total population.
 """
 def obtain_features_from_census(reader, labels, start_year, end_year,
-        unique_ids, threads=10):
+        unique_ids):
     zipcodes = list(labels.keys()) # The keys to the labels dict are the zips
+
+    # tqdm multiprocessing voodoo
+    q = multiprocessing.Queue()
+    proc = multiprocessing.Process(target=tqdm_listener, args=(q,))
+    proc.start()
     
     # Create an iterable of tuples ready for multithreading
-    iterable = []
+    jobs = []
+    manager = multiprocessing.Manager()
+    results = manager.dict()
     for i in range(len(zipcodes)):
         zipcode = zipcodes[i]
         label = labels[zipcode]
-        iterable.append((zipcode, label))
+        pair = (zipcode, label)
+        p = multiprocessing.Process(target=fetch_features, args=(reader,
+            start_year, end_year, unique_ids, pair, results, q))
+        jobs.append(p)
+        p.start()
 
-    # Watch it fly!
-    pool = ThreadPool(threads)
-    func = partial(fetch_features, reader, start_year, end_year, unique_ids)
-    results = pool.map(func, iterable)
+    # Wait for all jobs to finish
+    for j in trange(len(jobs)):
+        job = jobs[j]
+        job.join()
+
+    q.put(None)
+    proc.join() # Finish tqdm process.
+
+    print(type(results))
 
     # Final post-processing to get data map.
     data = {}
     error_zips = 0
-    for i in trange(len(results)):
-        item = results[i]
+    result_keys = results.keys()
+    for i in trange(len(result_keys)):
+        zipcode = result_keys[i]
+        item = results[zipcode]
         if item == None: 
             error_zips += 1
             continue # Skip the invalid zips
-        zipcode = item[0]
-        features = item[1]
-        label = item[2]
+        features = item[0]
+        label = item[1]
         data[zipcode] = (features, label)
 
     print('Successfully created', len(data), 'data points.')
@@ -210,7 +239,7 @@ def main():
     labels = read_labels()
     #labels = labels_sample
     # labels = {z : labels[z] for z in list(random.sample(labels.keys(), 300))}
-    labels = {z : labels[z] for z in list(labels.keys())[:20]}
+    labels = {z : labels[z] for z in list(labels.keys())[:BATCH_SIZE]}
 
     # Get the full data fold from the census.
     data = obtain_features_from_census(reader, labels, 2015, 2015, unique_ids)
