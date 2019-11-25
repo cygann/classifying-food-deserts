@@ -165,13 +165,7 @@ def obtain_features_from_census(reader, labels, start_year, end_year,
         unique_ids):
     zipcodes = list(labels.keys()) # The keys to the labels dict are the zips
 
-    # tqdm multiprocessing voodoo
-    # q = multiprocessing.Queue()
-    # proc = multiprocessing.Process(target=tqdm_listener, args=(q,))
-    # proc.start()
-    
     # Create an iterable of tuples ready for multithreading
-    # jobs = []
     iterable = []
     for i in range(len(zipcodes)):
         zipcode = zipcodes[i]
@@ -192,28 +186,6 @@ def obtain_features_from_census(reader, labels, start_year, end_year,
                 unique_ids, results, pair,), callback=update)
     pool.close()
     pool.join()
-
-    # with multiprocessing.Pool(8) as p:
-        # func = partial(fetch_features, reader, start_year, end_year, unique_ids,
-                # results, q)
-        # p.map(func, iterable)
-
-    # for i in range(len(zipcodes)):
-        # zipcode = zipcodes[i]
-        # label = labels[zipcode]
-        # pair = (zipcode, label)
-        # p = multiprocessing.Process(target=fetch_features, args=(reader,
-            # start_year, end_year, unique_ids, pair, results, q))
-        # jobs.append(p)
-        # p.start()
-
-    # Wait for all jobs to finish
-    # for j in trange(len(jobs)):
-        # job = jobs[j]
-        # job.join()
-
-    # q.put(None)
-    # proc.join() # Finish tqdm process.
 
     # Final post-processing to get data map.
     data = {}
