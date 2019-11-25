@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 import math
 from census import Census
+from census import core.CensusException
 from us import states
 from tqdm import trange
 
@@ -75,7 +76,7 @@ class CensusReader:
                 try:
                     res = self.reader.acs5.zipcode(field_ids, zipcode, year=y)
                     break # If we get here, there was no exception.
-                except census.core.CensusException:
+                except core.CensusException:
                     pass # Just try again until we get a connection.
 
             # if this is empty, return -1 to indicate this.
