@@ -90,8 +90,8 @@ Function for paralell data processing processes. This will fetch the data
 features for a single datapoint and place the (features, label) tuple into the
 results dict.
 """
-def fetch_features(reader, start_year, end_year, unique_ids, datapoint,
-        results, q):
+def fetch_features(reader, start_year, end_year, unique_ids, results, 
+        datapoint):
     zipcode = datapoint[0]
     label = datapoint[1]
     features = []
@@ -141,7 +141,7 @@ def fetch_features(reader, start_year, end_year, unique_ids, datapoint,
         out = np.concatenate(features)
         results[zipcode] = (out, label)
 
-    q.put(1) # Update progress bar.
+    # q.put(1) # Update progress bar.
 
 
 """
@@ -166,32 +166,54 @@ def obtain_features_from_census(reader, labels, start_year, end_year,
     zipcodes = list(labels.keys()) # The keys to the labels dict are the zips
 
     # tqdm multiprocessing voodoo
-    q = multiprocessing.Queue()
-    proc = multiprocessing.Process(target=tqdm_listener, args=(q,))
-    proc.start()
+    # q = multiprocessing.Queue()
+    # proc = multiprocessing.Process(target=tqdm_listener, args=(q,))
+    # proc.start()
     
     # Create an iterable of tuples ready for multithreading
-    jobs = []
-    manager = multiprocessing.Manager()
-    results = manager.dict()
+    # jobs = []
+    iterable = []
     for i in range(len(zipcodes)):
         zipcode = zipcodes[i]
         label = labels[zipcode]
-        pair = (zipcode, label)
-        p = multiprocessing.Process(target=fetch_features, args=(reader,
-            start_year, end_year, unique_ids, pair, results, q))
-        jobs.append(p)
-        p.start()
+        iterable.append((zipcode, label))
+
+    manager = multiprocessing.Manager()
+    results = manager.dict()
+
+    pool = multiprocessing.Pool(8)
+    pbar = tqdm(total=BATCH_SIZE)
+    def update(*a):
+        pbar.update()
+
+    for i in range(BATCH_SIZE):
+        pair = iterable[i]
+        pool.apply_async(fetch_features, args=(reader, start_year, end_year,
+                unique_ids, results, pair,), callback=update)
+    pool.close()
+    pool.join()
+
+    # with multiprocessing.Pool(8) as p:
+        # func = partial(fetch_features, reader, start_year, end_year, unique_ids,
+                # results, q)
+        # p.map(func, iterable)
+
+    # for i in range(len(zipcodes)):
+        # zipcode = zipcodes[i]
+        # label = labels[zipcode]
+        # pair = (zipcode, label)
+        # p = multiprocessing.Process(target=fetch_features, args=(reader,
+            # start_year, end_year, unique_ids, pair, results, q))
+        # jobs.append(p)
+        # p.start()
 
     # Wait for all jobs to finish
-    for j in trange(len(jobs)):
-        job = jobs[j]
-        job.join()
+    # for j in trange(len(jobs)):
+        # job = jobs[j]
+        # job.join()
 
-    q.put(None)
-    proc.join() # Finish tqdm process.
-
-    print(type(results))
+    # q.put(None)
+    # proc.join() # Finish tqdm process.
 
     # Final post-processing to get data map.
     data = {}
