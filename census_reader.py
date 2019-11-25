@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import math
 from census import Census
-from census import core.CensusException
+from census import core
 from us import states
 from tqdm import trange
 
