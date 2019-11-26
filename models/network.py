@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-class FoodDesertClassifer(nn.Module):
+class FoodDesertClassifier(nn.Module):
     def __init__(self, input_size=10, hidden_size=10, output_size=2):
+        super(FoodDesertClassifier, self).__init__()
         self.linear1 = nn.Linear(input_size, hidden_size)
         self.linear2 = nn.Linear(hidden_size, output_size)
 
