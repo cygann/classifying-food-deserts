@@ -12,6 +12,10 @@ path_to_script = os.path.dirname(os.path.abspath(__file__))
 # Path to the complete dataset.
 FULL_DATA_PICKLE = os.path.join(path_to_script, "data/full_data.pickle")
 
+feature_names = ['Population', 'Median Gross Rent (Dollars)', 'Median Home Value (Dollars)',
+					 'Unemployed', 'Geographic mobility', 'No Health insurance coverage',
+					 'Income below poverty level', 'Travel time to work', 'Median Income', 'Education']
+
 
 """
 Program that trains the food desert classifier SVM.
@@ -33,7 +37,7 @@ def main():
 	print(len(test_data), 'testing points.')
 
 
-	svclassifier = SVC(kernel='linear', gamma='scale')
+	svclassifier = SVC(kernel='linear', gamma='scale', class_weight='balanced')
 	optimize(svclassifier, train_data, test_data) # train on train data
 
 	print('Success')
@@ -46,18 +50,16 @@ def optimize(model, train_data, test_data):
 
 	print('*******Training*******')
 
-
-
 	# Prepare the data
 	X_train, y_train = [], []
-	for (x, y) in train_data[:20]:
+	for (x, y) in train_data[:175]:
 		features = [np.nan_to_num(f) for f in x]
 		X_train.append(features)
 		y_train.append(y)
 	
 
 	X_test, y_test = [], []
-	for (x, y) in test_data[:5]:
+	for (x, y) in test_data[:50]:
 		features = [np.nan_to_num(f) for f in x]
 		X_test.append(features)
 		y_test.append(y)
@@ -68,35 +70,39 @@ def optimize(model, train_data, test_data):
 	y_test = np.array(y_test)
 
 
-
-
 	# Fit the SVM model
 	clf = model.fit(X_train, y_train)
 	y_pred = model.predict(X_test)
 
 	# Print stats
+	print('******Confusion matrix*******')
 	print(confusion_matrix(y_test,y_pred))
+	print('******Classification report*******')
 	print(classification_report(y_test,y_pred))
 
 	# Plotting
-
-	def plot_coefficients(classifier, feature_names, top_features=5):
-		coef = classifier.coef_.ravel()
-		top_positive_coefficients = np.argsort(coef)[-top_features:]
-		top_negative_coefficients = np.argsort(coef)[:top_features]
-		top_coefficients = np.hstack([top_negative_coefficients, top_positive_coefficients])
-
-		# create plot
-		plt.figure(figsize=(15, 5))
-		colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
-		plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
-		feature_names = np.array(feature_names)
-		plt.xticks(np.arange(1, 1 + 2 * top_features), feature_names[top_coefficients], rotation=60, ha='right')
-		plt.show()
-
-
-	feature_names = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 	plot_coefficients(model, feature_names)
+
+
+
+"""
+Plot the weights assigned to the features (coefficients in the primal problem).
+This is only available in the case of a linear kernel.
+"""
+def plot_coefficients(classifier, feature_names, top_features=5):
+	coef = classifier.coef_.ravel()
+	top_positive_coefficients = np.argsort(coef)[-top_features:]
+	top_negative_coefficients = np.argsort(coef)[:top_features]
+	top_coefficients = np.hstack([top_negative_coefficients, top_positive_coefficients])
+
+	# create plot
+	plt.figure(figsize=(15, 5))
+	colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
+	plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
+	feature_names = np.array(feature_names)
+	plt.xticks(np.arange(0, 1 + 2 * top_features), feature_names[top_coefficients], rotation=60, ha='right')
+	plt.show()
+
 
 
 """
