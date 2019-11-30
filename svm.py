@@ -50,7 +50,7 @@ def optimize(model, train_data, test_data):
 
 	# Prepare the data
 	X_train, y_train = [], []
-	for (x, y) in train_data[:10]:
+	for (x, y) in train_data[:20]:
 		features = [np.nan_to_num(f) for f in x]
 		X_train.append(features)
 		y_train.append(y)
@@ -80,7 +80,7 @@ def optimize(model, train_data, test_data):
 
 	# Plotting
 
-	def plot_coefficients(classifier, feature_names, top_features=10):
+	def plot_coefficients(classifier, feature_names, top_features=5):
 		coef = classifier.coef_.ravel()
 		top_positive_coefficients = np.argsort(coef)[-top_features:]
 		top_negative_coefficients = np.argsort(coef)[:top_features]
