@@ -6,6 +6,7 @@ class LogisticRegressionModel(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(LogisticRegressionModel, self).__init__()
         self.linear = nn.Linear(input_dim, output_dim)
+        self.weights = self.linear.weight
 
     def forward(self, x):
 #        print("X_VALUE: ")
@@ -13,4 +14,4 @@ class LogisticRegressionModel(nn.Module):
         out = self.linear(x)
 #        print("OUT VALUE: ")
 #        print(out)
-        return out
+        return (out, self.weights)
