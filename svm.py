@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.svm import SVC
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import classification_report, confusion_matrix
+import matplotlib.pyplot as plt
 
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
@@ -22,6 +23,7 @@ def main():
 	# each representing a zipcode datapoint.
 	data = read_data()
 
+
 	# Separate 80/20 as train/val/test partition.
 	data_size = len(data)
 	random.shuffle(data)
@@ -31,10 +33,11 @@ def main():
 	print(len(test_data), 'testing points.')
 
 
-	svclassifier = SVC(kernel='poly', gamma='scale')
+	svclassifier = SVC(kernel='linear', gamma='scale')
 	optimize(svclassifier, train_data, test_data) # train on train data
 
 	print('Success')
+
 
 """
 Optimize on the training set. Trains on train_data and validates on val_data.
@@ -43,19 +46,18 @@ def optimize(model, train_data, test_data):
 
 	print('*******Training*******')
 
+
+
 	# Prepare the data
 	X_train, y_train = [], []
-	num_food_desert = 0
-	for (x, y) in train_data[:40]:
+	for (x, y) in train_data[:10]:
 		features = [np.nan_to_num(f) for f in x]
 		X_train.append(features)
 		y_train.append(y)
-		if y == 1:
-			num_food_desert += 1
-	print(num_food_desert)
+	
 
 	X_test, y_test = [], []
-	for (x, y) in test_data[:20]:
+	for (x, y) in test_data[:5]:
 		features = [np.nan_to_num(f) for f in x]
 		X_test.append(features)
 		y_test.append(y)
@@ -65,12 +67,37 @@ def optimize(model, train_data, test_data):
 	X_test = np.array(X_test)
 	y_test = np.array(y_test)
 
-	model.fit(X_train, y_train)
 
+
+
+	# Fit the SVM model
+	clf = model.fit(X_train, y_train)
 	y_pred = model.predict(X_test)
 
+	# Print stats
 	print(confusion_matrix(y_test,y_pred))
 	print(classification_report(y_test,y_pred))
+
+	# Plotting
+
+	def plot_coefficients(classifier, feature_names, top_features=10):
+		coef = classifier.coef_.ravel()
+		top_positive_coefficients = np.argsort(coef)[-top_features:]
+		top_negative_coefficients = np.argsort(coef)[:top_features]
+		top_coefficients = np.hstack([top_negative_coefficients, top_positive_coefficients])
+
+		# create plot
+		plt.figure(figsize=(15, 5))
+		colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
+		plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
+		feature_names = np.array(feature_names)
+		plt.xticks(np.arange(1, 1 + 2 * top_features), feature_names[top_coefficients], rotation=60, ha='right')
+		plt.show()
+
+
+	feature_names = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+	plot_coefficients(model, feature_names)
+
 
 """
 Read in the full dataset, which is saved to a .pickle file in the format of a
