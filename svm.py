@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 
@@ -37,6 +38,9 @@ def main():
 	print(len(test_data), 'testing points.')
 
 
+
+
+	# Fit the SVM
 	svclassifier = SVC(kernel='linear', gamma='scale', class_weight='balanced')
 	optimize(svclassifier, train_data, test_data) # train on train data
 
@@ -52,14 +56,13 @@ def optimize(model, train_data, test_data):
 
 	# Prepare the data
 	X_train, y_train = [], []
-	for (x, y) in train_data[:175]:
+	for (x, y) in train_data:
 		features = [np.nan_to_num(f) for f in x]
 		X_train.append(features)
 		y_train.append(y)
-	
 
 	X_test, y_test = [], []
-	for (x, y) in test_data[:50]:
+	for (x, y) in test_data:
 		features = [np.nan_to_num(f) for f in x]
 		X_test.append(features)
 		y_test.append(y)
@@ -68,6 +71,13 @@ def optimize(model, train_data, test_data):
 	y_train = np.array(y_train)
 	X_test = np.array(X_test)
 	y_test = np.array(y_test)
+
+	# Standarize features
+	scaler = StandardScaler()
+	X_train = scaler.fit_transform(X_train)
+	# Fix the NaNs and infinities again
+	for i in range(len(X_train)):
+		X_train[i] = [np.nan_to_num(f) for f in X_train[i]]
 
 
 	# Fit the SVM model
