@@ -241,7 +241,7 @@ def main():
     labels = {z : labels[z] for z in list(labels.keys())[:BATCH_SIZE]}
 
     # Get the full data fold from the census.
-    data = obtain_features_from_census(reader, labels, 2014, 2015, unique_ids)
+    data = obtain_features_from_census(reader, labels, 2012, 2015, unique_ids)
 
     num_deserts = 0
     for z in list(data.keys()):
