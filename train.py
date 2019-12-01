@@ -265,7 +265,7 @@ def eval_model_nn(model, loss, data, testType):
             pred = model(x)[0]
             pred.unsqueeze_(0) # add a dimension before passing to criterion
             _, predicted = torch.max(pred.data, 0)
-            num_correct = (num_correct+1 if (predicted == y) else num_correct)
+             num_correct = (num_correct+1 if (predicted == y) else num_correct)
     accuracy = 100.0 * num_correct / total
     string = 'Loss: {}. ' + testType + ' Accuracy: {}.'
     print(string.format(loss.item(), accuracy))
