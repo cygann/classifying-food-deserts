@@ -105,8 +105,7 @@ def optimize(model, train_data, test_data):
 	#                       title='Confusion matrix, without normalization')
 
 	# Plot normalized confusion matrix
-	# plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True,
-	#                       title='Normalized confusion matrix')
+	plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True, title='Normalized confusion matrix')
 
 	plt.show()
 
