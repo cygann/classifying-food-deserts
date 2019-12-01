@@ -34,7 +34,13 @@ def coalese_data_files():
 
     return merged_data
     
-def read_input_file():
+"""
+Reads in a dict of zipcodes to (feature matrix, label) tuples and turns the
+feature matrix into a feature vector of size 20, where the first 10 features
+are the 2015 values and the last 10 are the percent changes from 2012 to 2015.
+This dict is returned by the function.
+"""
+def build_percent_change_features():
     data = None
     with open(input_data, 'rb') as fp:
         data = pickle.load(fp)
@@ -61,9 +67,8 @@ def read_input_file():
     return final_data
 
 def main():
-    data = read_input_file()
+    data = build_percent_change_features()
     print('Successfully read in a dataset of', len(data), 'datapoints.')
-    print(data)
 
     # Save full data to pickle.
     with open(FULL_DATA_PICKLE, 'wb') as handle:
