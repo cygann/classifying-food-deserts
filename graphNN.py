@@ -2,15 +2,10 @@ import os
 import random
 import pickle
 import numpy as np
-from sklearn.svm import SVC
-from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import Perceptron
 import matplotlib.pyplot as plt
-#from train import optimize_nn
-from models.network import FoodDesertClassifier
 
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
