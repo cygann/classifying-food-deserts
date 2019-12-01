@@ -45,9 +45,6 @@ def main(argv):
     model = LogisticRegressionModel(input_dim, output_dim)
     optimize(model, train_data, val_data, test_data) # train on train data
     
-    
-    
-    
     #test(model, test_data) # test on test data
  
 
