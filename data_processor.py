@@ -10,6 +10,7 @@ import multiprocessing
 from functools import partial
 
 BATCH_SIZE = 20
+np.set_printoptions(precision=3) 
 
 ZIPCODES_ = [95131, 36003, 60649, 14075, 19149] # Must be of length 2 or more
 LABELS_ = [0, 1, 1, 0, 0] # 0 = Not food desert, 1 = food desert
@@ -22,7 +23,7 @@ for i in range(len(ZIPCODES_)):
 # Contains map of zipcodes to binary food desert labels.
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 LABELS_PICKLE = os.path.join(path_to_script, "data/labels.pickle")
-FULL_DATA_PICKLE = os.path.join(path_to_script, "data/data.pickle")
+FULL_DATA_PICKLE = os.path.join(path_to_script, "data/test_data.pickle")
 
 """
 Parses a census api variable file. Each row contains one or more census
@@ -90,7 +91,7 @@ Function for paralell data processing processes. This will fetch the data
 features for a single datapoint and place the (features, label) tuple into the
 results dict.
 """
-def fetch_features(reader, start_year, end_year, unique_ids, results, 
+def fetch_features(reader, years, unique_ids, results, 
         datapoint):
     zipcode = datapoint[0]
     label = datapoint[1]
@@ -103,7 +104,7 @@ def fetch_features(reader, start_year, end_year, unique_ids, results,
     # to work. This will always be the first item in unique_ids.
     assert(len(unique_ids) >= 1)
     population = reader.getDataOverInterval(unique_ids[0][0], zipcode,
-            start_year, end_year)
+            years)
     features.append(population)
 
     # Each entry in unique_ids is a list of census variables that get summed
@@ -116,14 +117,14 @@ def fetch_features(reader, start_year, end_year, unique_ids, results,
         # Ensure that the zipcode is successfully read.
         try:
             var_data = reader.getDataOverInterval(variables, zipcode,
-                    start_year, end_year)
+                    years)
         except Exception:
             valid_zip = False
             break
 
         # It's possible no exception was thrown, but the zipcode could just
         # have no data.
-        if var_data == -1:
+        if var_data is -1:
             valid_zip = False
             break
 
@@ -138,11 +139,10 @@ def fetch_features(reader, start_year, end_year, unique_ids, results,
     if not valid_zip: 
         results[zipcode] = None
     else:
-        out = np.concatenate(features)
+        out = np.stack(features)
         results[zipcode] = (out, label)
 
-    # q.put(1) # Update progress bar.
-
+    # print('zip:', zipcode, 'features:', results[zipcode])
 
 """
 Obtains the census features for all datapoints using the census API. This
@@ -153,16 +153,12 @@ saved to a .pickle file and is also returned by the function.
 Parameters:
     reader : an Census reader object that will obtain values from the census API.
     labels : a dict that maps zipcodes to binary food desert flags (labels)
-    start_year : the starting year for the interval over which the data is
-        desired to be extracted.
-    end_year : the ending year for the interval over which the data is
-        desired to be extracted. (Inclusive)
+    years : a list of the years the data will be processed for.
     unique_ids : a list containing the census data variables. An example of one
         such value is 'B00001_001E', which is the Census Data API variable for the
         total population.
 """
-def obtain_features_from_census(reader, labels, start_year, end_year,
-        unique_ids):
+def obtain_features_from_census(reader, labels, years, unique_ids):
     zipcodes = list(labels.keys()) # The keys to the labels dict are the zips
 
     # Create an iterable of tuples ready for multithreading
@@ -182,8 +178,9 @@ def obtain_features_from_census(reader, labels, start_year, end_year,
 
     for i in range(BATCH_SIZE):
         pair = iterable[i]
-        pool.apply_async(fetch_features, args=(reader, start_year, end_year,
+        pool.apply_async(fetch_features, args=(reader, years,
                 unique_ids, results, pair,), callback=update)
+
     pool.close()
     pool.join()
 
@@ -240,7 +237,8 @@ def main():
     labels = {z : labels[z] for z in list(labels.keys())[:BATCH_SIZE]}
 
     # Get the full data fold from the census.
-    data = obtain_features_from_census(reader, labels, 2015, 2015, unique_ids)
+    years = [2012, 2015]
+    data = obtain_features_from_census(reader, labels, years, unique_ids)
 
     num_deserts = 0
     for z in list(data.keys()):
