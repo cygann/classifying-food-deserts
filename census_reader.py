@@ -27,7 +27,7 @@ class CensusReader:
     def __init__(self):
         self.reader = Census(CENSUS_KEY) # Create census reader
 
-    def getDataOverInterval(self, field_ids, zipcode, start_year, end_year):
+    def getDataOverInterval(self, field_ids, zipcode, years):
         """
         Will retrieve data over the time interval specified by start_year and
         end_year for the given zipcode and field_id list. Will return a list 
@@ -39,7 +39,7 @@ class CensusReader:
         of the categories (ex. college education would require several fields).
         """
         values = []
-        for y in range(start_year, end_year + 1):
+        for y in years:
             res = None
             while True:
                 try:
