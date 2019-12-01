@@ -142,7 +142,7 @@ def fetch_features(reader, years, unique_ids, results,
         out = np.stack(features)
         results[zipcode] = (out, label)
 
-    print('zip:', zipcode, 'features:', results[zipcode])
+    # print('zip:', zipcode, 'features:', results[zipcode])
 
 """
 Obtains the census features for all datapoints using the census API. This
