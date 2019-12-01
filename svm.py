@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.svm import SVC
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 
 
@@ -16,7 +16,7 @@ FULL_DATA_PICKLE = os.path.join(path_to_script, "data/full_data.pickle")
 feature_names = ['Population', 'Median Gross Rent (Dollars)', 'Median Home Value (Dollars)',
 					 'Unemployed', 'Geographic mobility', 'No Health insurance coverage',
 					 'Income below poverty level', 'Travel time to work', 'Median Income', 'Education']
-
+class_names = [0, 1]
 
 """
 Program that trains the food desert classifier SVM.
@@ -37,11 +37,9 @@ def main():
 	print(len(train_data), 'training points.')
 	print(len(test_data), 'testing points.')
 
-
-
-
 	# Fit the SVM
-	svclassifier = SVC(kernel='linear', gamma='scale', class_weight='balanced')
+	# class_weight_dict = {0:1, 1:10} # food desert class is weighed ten times heavier than food desert class
+	svclassifier = SVC(kernel='linear', gamma='scale', class_weight='balanced', C=10.0)
 	optimize(svclassifier, train_data, test_data) # train on train data
 
 	print('Success')
@@ -55,24 +53,17 @@ def optimize(model, train_data, test_data):
 	print('*******Training*******')
 
 	# Prepare the data
-	X_train, y_train = [], []
-	for (x, y) in train_data:
-		features = [np.nan_to_num(f) for f in x]
-		X_train.append(features)
-		y_train.append(y)
-
-	X_test, y_test = [], []
-	for (x, y) in test_data:
-		features = [np.nan_to_num(f) for f in x]
-		X_test.append(features)
-		y_test.append(y)
+	X_train, y_train = filter_out_bad_data(train_data)
+	X_test, y_test = filter_out_bad_data(test_data)
+	print(len(X_train), 'training points after filtering.')
+	print(len(X_test), 'testing points after filtering.')
 
 	X_train = np.array(X_train)
 	y_train = np.array(y_train)
 	X_test = np.array(X_test)
 	y_test = np.array(y_test)
 
-	# Standarize features
+	# Standardize features
 	scaler = StandardScaler()
 	X_train = scaler.fit_transform(X_train)
 	# Fix the NaNs and infinities again
@@ -89,11 +80,43 @@ def optimize(model, train_data, test_data):
 	print(confusion_matrix(y_test,y_pred))
 	print('******Classification report*******')
 	print(classification_report(y_test,y_pred))
+	print('******Accuracy score*******')
+	print(accuracy_score(y_test,y_pred))
+	print()
 
 	# Plotting
-	plot_coefficients(model, feature_names)
+
+	# plot_coefficients(model, feature_names)
+
+	# Plot non-normalized confusion matrix
+	# plot_confusion_matrix(y_test, y_pred, classes=class_names,
+	#                       title='Confusion matrix, without normalization')
+
+	# Plot normalized confusion matrix
+	plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True,
+	                      title='Normalized confusion matrix')
+
+	plt.show()
 
 
+"""
+Filter out feature vectors that contain NaNs or infinities.
+"""
+def filter_out_bad_data(train_data):
+	X_train, y_train = [], []
+	for (x, y) in train_data:
+		features = []
+		contains_bad_val = False
+		for f in x:
+			if np.isnan(f) or np.isinf(f):
+				contains_bad_val = True
+				break
+			features.append(f)
+		if contains_bad_val:
+			continue
+		X_train.append(features)
+		y_train.append(y)
+	return (X_train, y_train)
 
 """
 Plot the weights assigned to the features (coefficients in the primal problem).
@@ -112,6 +135,62 @@ def plot_coefficients(classifier, feature_names, top_features=5):
 	feature_names = np.array(feature_names)
 	plt.xticks(np.arange(0, 1 + 2 * top_features), feature_names[top_coefficients], rotation=60, ha='right')
 	plt.show()
+
+
+"""
+This function prints and plots the confusion matrix.
+Normalization can be applied by setting `normalize=True`.
+"""
+def plot_confusion_matrix(y_true, y_pred, classes,
+                          normalize=False,
+                          title=None,
+                          cmap=plt.cm.Blues):
+	if not title:
+	    if normalize:
+	        title = 'Normalized confusion matrix'
+	    else:
+	        title = 'Confusion matrix, without normalization'
+
+	np.set_printoptions(precision=2)
+	# Compute confusion matrix
+	cm = confusion_matrix(y_true, y_pred)
+	# Only use the labels that appear in the data
+	# classes = classes[unique_labels(y_true, y_pred)]
+	if normalize:
+	    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+	    print("Normalized confusion matrix")
+	else:
+	    print('Confusion matrix, without normalization')
+
+	print(cm)
+
+	fig, ax = plt.subplots()
+	im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+	ax.figure.colorbar(im, ax=ax)
+	# We want to show all ticks...
+	ax.set(xticks=np.arange(cm.shape[1]),
+	       yticks=np.arange(cm.shape[0]),
+	       # ... and label them with the respective list entries
+	       xticklabels=classes, yticklabels=classes,
+	       title=title,
+	       ylabel='True label',
+	       xlabel='Predicted label')
+
+	# Rotate the tick labels and set their alignment.
+	plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+	         rotation_mode="anchor")
+
+	# Loop over data dimensions and create text annotations.
+	fmt = '.2f' if normalize else 'd'
+	thresh = cm.max() / 2.
+	for i in range(cm.shape[0]):
+	    for j in range(cm.shape[1]):
+	        ax.text(j, i, format(cm[i, j], fmt),
+	                ha="center", va="center",
+	                color="white" if cm[i, j] > thresh else "black")
+	fig.tight_layout()
+	return ax
+
 
 
 
