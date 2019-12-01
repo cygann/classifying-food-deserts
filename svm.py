@@ -20,10 +20,7 @@ FULL_DATA_PICKLE = os.path.join(path_to_script, "data/full_data_v2.pickle")
 feature_names = ['Population', 'Median Gross Rent (Dollars)', 'Median Home Value (Dollars)',
 					 'Unemployed', 'Geographic mobility', 'No Health insurance coverage',
 					 'Income below poverty level', 'Travel time to work', 'Median Income', 'Education',
-					 '% Change Population', '% Change Median Gross Rent (Dollars)', '% Change Median Home Value (Dollars)',
-					 '% Change Unemployed', '% Change Geographic mobility', '% Change No Health insurance coverage',
-					 '% Change Income below poverty level', '% Change Travel time to work', '% Change Median Income', '% Change Education']
-
+					 '% Change Population', '% Change Median Gross Rent (Dollars)', '% Change Median Home Value (Dollars)', '% Change Unemployed', '% Change Geographic mobility', '% Change No Health insurance coverage', '% Change Income below poverty level', '% Change Travel time to work', '% Change Median Income', '% Change Education'] 
 
 class_names = [0, 1]
 
