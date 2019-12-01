@@ -43,6 +43,7 @@ def build_percent_change_features(merged_data):
 
     keys = list(merged_data.keys())
     final_data = {}
+    num_nan = 0
 
     # Rebuild the feature of every zipcode from a 10 x 2 matrix to a length 20
     # vector, where the last 10 features are the percent changes from 2012 to
@@ -57,11 +58,24 @@ def build_percent_change_features(merged_data):
         # Take first column, which represents 2012.
         data_2012 = data_matrix[:, 0]
         diff = data_2015 - data_2012
+        
+        for i in range(len(data_2012)):
+            if data_2012[i] == 0:
+                data_2012[i] = 1
+
         percent = diff / data_2012 # Get the percent change.
 
         feature_vec = np.concatenate((data_2015, percent))
+        is_nan = False
+        for f in feature_vec:
+            if np.isnan(f):
+                num_nan += 1
+                is_nan = True
+                break
 
-        final_data[zipcode] = (feature_vec, label)
+        if not is_nan: final_data[zipcode] = (feature_vec, label)
+
+    print('Number of nan:', num_nan)
 
     return final_data
 
