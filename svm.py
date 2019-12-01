@@ -11,11 +11,20 @@ import matplotlib.pyplot as plt
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 # Path to the complete dataset.
-FULL_DATA_PICKLE = os.path.join(path_to_script, "data/full_data.pickle")
+FULL_DATA_PICKLE = os.path.join(path_to_script, "data/data_sample_final.pickle")
+
+# feature_names = ['Population', 'Median Gross Rent (Dollars)', 'Median Home Value (Dollars)',
+# 					 'Unemployed', 'Geographic mobility', 'No Health insurance coverage',
+# 					 'Income below poverty level', 'Travel time to work', 'Median Income', 'Education']
 
 feature_names = ['Population', 'Median Gross Rent (Dollars)', 'Median Home Value (Dollars)',
 					 'Unemployed', 'Geographic mobility', 'No Health insurance coverage',
-					 'Income below poverty level', 'Travel time to work', 'Median Income', 'Education']
+					 'Income below poverty level', 'Travel time to work', 'Median Income', 'Education',
+					 '% Change Population', '% Change Median Gross Rent (Dollars)', '% Change Median Home Value (Dollars)',
+					 '% Change Unemployed', '% Change Geographic mobility', '% Change No Health insurance coverage',
+					 '% Change Income below poverty level', '% Change Travel time to work', '% Change Median Income', '% Change Education']
+
+
 class_names = [0, 1]
 
 """
@@ -87,8 +96,8 @@ def optimize(model, train_data, test_data):
 	print()
 
 	# Plotting
-
-	plot_coefficients(model, feature_names)
+	num_top_to_plot = int(len(X_train[0]) / 2)
+	plot_coefficients(model, feature_names, num_top_to_plot)
 
 	# Plot non-normalized confusion matrix
 	# plot_confusion_matrix(y_test, y_pred, classes=class_names,
@@ -126,7 +135,7 @@ def filter_out_bad_data(data):
 Plot the weights assigned to the features (coefficients in the primal problem).
 This is only available in the case of a linear kernel.
 """
-def plot_coefficients(classifier, feature_names, top_features=5):
+def plot_coefficients(classifier, feature_names, top_features):
 	coef = classifier.coef_.ravel()
 	top_positive_coefficients = np.argsort(coef)[-top_features:]
 	top_negative_coefficients = np.argsort(coef)[:top_features]
