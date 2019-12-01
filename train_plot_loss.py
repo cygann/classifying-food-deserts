@@ -12,7 +12,7 @@ from tqdm import trange
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 # Path to the complete dataset.
-FULL_DATA_PICKLE = os.path.join(path_to_script, "data/full_data.pickle")
+FULL_DATA_PICKLE = os.path.join(path_to_script, "data/data_sample_final.pickle")
 
 """
 Program that trains and runs the the food desert classifier network.
@@ -39,8 +39,8 @@ def main(argv):
     output_dim = 2 # two classes: food desert and not food desert
     hidden_dim_list = [5, 10, 8, 12]
 
-    model_nn = FoodDesertClassifier(input_dim, hidden_dim_list, output_dim)
-    optimize_nn(model_nn, train_data, val_data, test_data)
+    # model_nn = FoodDesertClassifier(input_dim, hidden_dim_list, output_dim)
+    # optimize_nn(model_nn, train_data, val_data, test_data)
     
     model = LogisticRegressionModel(input_dim, output_dim)
     optimize(model, train_data, val_data, test_data) # train on train data
@@ -58,7 +58,7 @@ def optimize(model, train_data, val_data, test_data):
     """
     Optimize on the training set
     """
-    print('*******Training*******')
+    print('*******Training: Logistic Regression *******')
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
@@ -101,27 +101,37 @@ def optimize(model, train_data, val_data, test_data):
                 optimizer.step()
     
                 iter += 1
-                if iter % 100 == 0:
+                if iter % 10 == 0:
                     # Calculate accuracy on train_data
                     num_correct = 0
                     total = 0
+                    num_food_deserts = 0
+                    num_not_food_deserts = 0
                     for x, y in train_data:
                         if not np.isnan(x).any():
+                            if y == 1: 
+                                num_food_deserts += 1
+                            else:
+                                num_not_food_deserts += 1
                             total+=1
                             x = Variable(valueToTensor(x))
                             pred = model(x)[0]
                             pred.unsqueeze_(0) # add a dimension before passing to criterion
                             _, predicted = torch.max(pred.data, 0)
                             num_correct = (num_correct+1 if (predicted[0] == y) else num_correct)
-                            #print('num_correct:', num_correct, ', total', len(val_data))
+                    
+                    print("num_food_deserts:", num_food_deserts, " num_not_food_deserts:", num_not_food_deserts)
+                    print('num_correct:', num_correct, ', total:', total)
                     accuracy = 100.0 * num_correct / total
                     print('Iteration: {}. Loss: {}. Training Accuracy: {}.'.format(iter, loss.item(), accuracy))
                     
-                if iter == 200:
-                    weights = model(x)[1]
-                    print(weights)
-                    eval_model(model, loss, test_data, "Testing")
-                    eval_model(model, loss, val_data, "Validation")
+                
+        eval_model(model, loss, val_data, "Validation")
+        if iter == 200:
+            weights = model(x)[1]
+            print(weights)
+            eval_model(model, loss, test_data, "Testing")
+            return
 #                    num_correct = 0
 #                    total = 0
 #                    for x, y in test_data:
@@ -135,7 +145,6 @@ def optimize(model, train_data, val_data, test_data):
 #                    #print('num_correct:', num_correct, ', total', len(val_data))
 #                    accuracy = 100.0 * num_correct / total
 #                    print('Loss: {}. Testing Accuracy: {}.'.format(loss.item(), accuracy))
-                    return
         #print()
     
 
@@ -187,7 +196,7 @@ def optimize_nn(model, train_data, val_data, test_data):
     """
     Optimize neural network model on the training set
     """
-    print('*******Training*******')
+    print('*******Training: Neural Network*******')
     
     #criterion = nn.NLLLoss()
     criterion = nn.CrossEntropyLoss()
@@ -233,7 +242,7 @@ def optimize_nn(model, train_data, val_data, test_data):
                 running_loss += loss.item()
                 
                 iter += 1
-                if iter % 100 == 0:
+                if iter % 1 == 0:
                     # Calculate accuracy on train_data
                     num_correct = 0
                     total = 0
@@ -249,10 +258,12 @@ def optimize_nn(model, train_data, val_data, test_data):
                     accuracy = 100.0 * num_correct / total
                     print('Iteration: {}. Loss: {}. Training Accuracy: {}.'.format(iter, loss.item(), accuracy))
                     
-                if iter == 500:
-                    eval_model_nn(model, loss, test_data, "Testing")
-                    eval_model_nn(model, loss, val_data, "Validation")
-                    return
+                
+        eval_model_nn(model, loss, val_data, "Validation")
+        
+        if iter == 500:
+            eval_model_nn(model, loss, test_data, "Testing")
+            return
         #print(f"Training loss: {running_loss / len(train_data)}")
 
 def eval_model_nn(model, loss, data, testType):
@@ -265,7 +276,7 @@ def eval_model_nn(model, loss, data, testType):
             pred = model(x)[0]
             pred.unsqueeze_(0) # add a dimension before passing to criterion
             _, predicted = torch.max(pred.data, 0)
-             num_correct = (num_correct+1 if (predicted == y) else num_correct)
+            num_correct = (num_correct+1 if (predicted == y) else num_correct)
     accuracy = 100.0 * num_correct / total
     string = 'Loss: {}. ' + testType + ' Accuracy: {}.'
     print(string.format(loss.item(), accuracy))

@@ -11,7 +11,7 @@ FULL_DATA_PICKLE = os.path.join(path_to_script, "data_sample_final.pickle")
 data_files = [os.path.join(path_to_script, "data_parts/data_i.pickle"),
         os.path.join(path_to_script, "data_parts/data_ii.pickle"),
         os.path.join(path_to_script, "data_parts/data_iii.pickle")]
-input_data = os.path.join(path_to_script, "test_data.pickle")
+input_data = os.path.join(path_to_script, "data_sample.pickle")
 
 """
 Since data was processed in multiple parts on myth machines, the three pickle
@@ -34,22 +34,40 @@ def coalese_data_files():
 
     return merged_data
     
-def read_input_file():
+"""
+Reads in a dict of zipcodes to (feature matrix, label) tuples and turns the
+feature matrix into a feature vector of size 20, where the first 10 features
+are the 2015 values and the last 10 are the percent changes from 2012 to 2015.
+This dict is returned by the function.
+"""
+def build_percent_change_features():
     data = None
     with open(input_data, 'rb') as fp:
         data = pickle.load(fp)
 
     keys = list(data.keys())
-    print(keys)
-    point = data[keys[1]]
-    print(point)
-    matrix = point[0]
-    print(len(matrix))
+    final_data = {}
 
-    return data
+    for zipcode in keys:
+        point = data[zipcode]
+        data_matrix = point[0]
+        label = point[1]
+
+        # Take second column, which represents 2015.
+        data_2015 = data_matrix[:, 1]
+        # Take first column, which represents 2012.
+        data_2012 = data_matrix[:, 0]
+        diff = data_2015 - data_2012
+        percent = diff / data_2012 # Get the percent change.
+
+        feature_vec = np.concatenate((data_2015, percent))
+
+        final_data[zipcode] = (feature_vec, label)
+
+    return final_data
 
 def main():
-    data = read_input_file()
+    data = build_percent_change_features()
     print('Successfully read in a dataset of', len(data), 'datapoints.')
 
     # Save full data to pickle.
