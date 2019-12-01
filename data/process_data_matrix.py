@@ -11,7 +11,7 @@ FULL_DATA_PICKLE = os.path.join(path_to_script, "data_sample_final.pickle")
 data_files = [os.path.join(path_to_script, "data_parts/data_i.pickle"),
         os.path.join(path_to_script, "data_parts/data_ii.pickle"),
         os.path.join(path_to_script, "data_parts/data_iii.pickle")]
-input_data = os.path.join(path_to_script, "test_data.pickle")
+input_data = os.path.join(path_to_script, "data_sample.pickle")
 
 """
 Since data was processed in multiple parts on myth machines, the three pickle
@@ -40,17 +40,30 @@ def read_input_file():
         data = pickle.load(fp)
 
     keys = list(data.keys())
-    print(keys)
-    point = data[keys[1]]
-    print(point)
-    matrix = point[0]
-    print(len(matrix))
+    final_data = {}
 
-    return data
+    for zipcode in keys:
+        point = data[zipcode]
+        data_matrix = point[0]
+        label = point[1]
+
+        # Take second column, which represents 2015.
+        data_2015 = data_matrix[:, 1]
+        # Take first column, which represents 2012.
+        data_2012 = data_matrix[:, 0]
+        diff = data_2015 - data_2012
+        percent = diff / data_2012 # Get the percent change.
+
+        feature_vec = np.concatenate((data_2015, percent))
+
+        final_data[zipcode] = (feature_vec, label)
+
+    return final_data
 
 def main():
     data = read_input_file()
     print('Successfully read in a dataset of', len(data), 'datapoints.')
+    print(data)
 
     # Save full data to pickle.
     with open(FULL_DATA_PICKLE, 'wb') as handle:
