@@ -119,7 +119,7 @@ def plot_decision_boundary(clf, X, Y, cmap='Paired_r'):
     print("Printing scatter plot")
     plt.scatter(X[:,0], X[:,1], c=Y, cmap=cmap, edgecolors='k');
     
-    plt.savefig('decision-boundary.png')
+    plt.savefig('decision-boundary-all.png')
     
     print("levels", len(c.levels))
     print("layers", len(c.layers))
