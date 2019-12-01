@@ -10,6 +10,7 @@ import multiprocessing
 from functools import partial
 
 BATCH_SIZE = 20
+np.set_printoptions(precision=3) 
 
 ZIPCODES_ = [95131, 36003, 60649, 14075, 19149] # Must be of length 2 or more
 LABELS_ = [0, 1, 1, 0, 0] # 0 = Not food desert, 1 = food desert
@@ -22,7 +23,7 @@ for i in range(len(ZIPCODES_)):
 # Contains map of zipcodes to binary food desert labels.
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 LABELS_PICKLE = os.path.join(path_to_script, "data/labels.pickle")
-FULL_DATA_PICKLE = os.path.join(path_to_script, "data/data.pickle")
+FULL_DATA_PICKLE = os.path.join(path_to_script, "data/test_data.pickle")
 
 """
 Parses a census api variable file. Each row contains one or more census
@@ -123,7 +124,7 @@ def fetch_features(reader, start_year, end_year, unique_ids, results,
 
         # It's possible no exception was thrown, but the zipcode could just
         # have no data.
-        if var_data == -1:
+        if var_data is -1:
             valid_zip = False
             break
 
@@ -141,8 +142,7 @@ def fetch_features(reader, start_year, end_year, unique_ids, results,
         out = np.concatenate(features)
         results[zipcode] = (out, label)
 
-    # q.put(1) # Update progress bar.
-
+    # print('zip:', zipcode, 'features:', results[zipcode])
 
 """
 Obtains the census features for all datapoints using the census API. This
@@ -184,6 +184,7 @@ def obtain_features_from_census(reader, labels, start_year, end_year,
         pair = iterable[i]
         pool.apply_async(fetch_features, args=(reader, start_year, end_year,
                 unique_ids, results, pair,), callback=update)
+
     pool.close()
     pool.join()
 
@@ -240,7 +241,7 @@ def main():
     labels = {z : labels[z] for z in list(labels.keys())[:BATCH_SIZE]}
 
     # Get the full data fold from the census.
-    data = obtain_features_from_census(reader, labels, 2015, 2015, unique_ids)
+    data = obtain_features_from_census(reader, labels, 2014, 2015, unique_ids)
 
     num_deserts = 0
     for z in list(data.keys()):
