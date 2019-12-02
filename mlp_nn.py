@@ -60,7 +60,7 @@ def main():
 def gridSearch(train_data, test_data):
 	poss_vals = []
 	accuracy_list = dict()
-	for num_layers in range(2, 11):
+	for num_layers in range(7, 9):
 		choose_from = []
 		for i in range(num_layers):
 			choose_from.append(2)
