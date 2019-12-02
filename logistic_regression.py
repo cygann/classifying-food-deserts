@@ -97,7 +97,7 @@ def optimize(model, train_data, test_data):
 	print()
 
 	# Plotting
-	num_top_to_plot = int(len(X_train[0]) / 2)
+	num_top_to_plot = 3
 	plot_coefficients(model, feature_names, num_top_to_plot)
 
 	# Plot non-normalized confusion matrix
@@ -146,7 +146,7 @@ def plot_coefficients(classifier, feature_names, top_features):
 	colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
 	plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
 	feature_names = np.array(feature_names)
-	plt.xticks(np.arange(0, 1 + 2 * top_features), feature_names[top_coefficients], rotation=60, ha='right')
+	plt.xticks(np.arange(0, 1 + 2 * top_features), feature_names[top_coefficients], rotation=30, ha='right', fontsize=20)
 	plt.show()
 
 
@@ -200,7 +200,8 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 	    for j in range(cm.shape[1]):
 	        ax.text(j, i, format(cm[i, j], fmt),
 	                ha="center", va="center",
-	                color="white" if cm[i, j] > thresh else "black")
+	                color="white" if cm[i, j] > thresh else "black",
+	                fontsize=20)
 	fig.tight_layout()
 	return ax
 
