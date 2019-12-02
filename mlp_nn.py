@@ -58,24 +58,30 @@ def main():
 	print('Success')
 
 def gridSearch(train_data, test_data):
-	poss_vals = []
+	
 	accuracy_list = dict()
 	for num_layers in range(7, 9):
+		poss_vals = []
 		choose_from = []
 		for i in range(num_layers):
 			choose_from.append(2)
 			choose_from.append(4)
-			choose_from.append(16)
+			#choose_from.append(16)
 		for item in permutations(choose_from, r=num_layers):
 			poss_vals.append(item)
 			accuracy_list[item] = []
-	
-	for poss_combo in poss_vals:
-
-		for alpha_val in [1e-6, 1e-4, 1e-2]:
-			clf = MLPClassifier(solver='adam', alpha=alpha_val, 
+		for poss_combo in poss_vals:
+			clf = MLPClassifier(solver='adam', alpha=1e-5, 
 				hidden_layer_sizes=poss_combo, random_state=0)
-			accuracy_list[poss_combo].append((alpha_val, optimize(clf, train_data, test_data)))
+			accuracy_list[poss_combo].append(optimize(clf, train_data, test_data))
+	
+	#for poss_combo in poss_vals:
+
+#		for alpha_val in [1e-6, 1e-4, 1e-2]:
+#			clf = MLPClassifier(solver='adam', alpha=alpha_val, 
+#				hidden_layer_sizes=poss_combo, random_state=0)
+#			accuracy_list[poss_combo].append((alpha_val, optimize(clf, train_data, test_data)))
+		
 
 	print("Accuracy Dict: ", accuracy_list)
 	print("Best Accuracy: ", max(accuracy_list)[1])
