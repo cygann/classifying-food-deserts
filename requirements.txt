@@ -6,3 +6,4 @@ pandas
 pickle
 torch
 sklern
+matplotlib

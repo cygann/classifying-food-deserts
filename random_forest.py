@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 # Path to the complete dataset.
-FULL_DATA_PICKLE = os.path.join(path_to_script, "data/data_sample_final.pickle")
+FULL_DATA_PICKLE = os.path.join(path_to_script, "data/full_data_v2.pickle")
 
 # feature_names = ['Population', 'Median Gross Rent (Dollars)', 'Median Home Value (Dollars)',
 # 					 'Unemployed', 'Geographic mobility', 'No Health insurance coverage',
