@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 from itertools import permutations
 
@@ -39,6 +39,11 @@ def main():
 
 	# Filter the data
 	data = filter_out_bad_data(data)
+	#data_augment(data)
+#	y_vals = []
+#	for x,y in data:
+#		y_vals.append(y)
+#	print("Ratio of 1s to 0s:", sum(y_vals) / len(y_vals))
 
 	# Separate 80/20 as train/val/test partition.
 	data_size = len(data)
@@ -48,7 +53,11 @@ def main():
 	print(len(train_data), 'training points after filtering.')
 	print(len(test_data), 'testing points after filtering.')
 
-	gridSearch(train_data, test_data)
+	clf = MLPClassifier(solver='adam', alpha=1e-5, 
+			hidden_layer_sizes=(16,16), max_iter=500, random_state=0)
+	print("Accuracy: ", optimize(clf, train_data, test_data))
+
+#gridSearch(train_data, test_data)
 
 	# Make the Logistic Regression model
 #	clf = MLPClassifier(solver='adam', alpha=1e-5, 
@@ -60,20 +69,25 @@ def main():
 def gridSearch(train_data, test_data):
 	
 	accuracy_list = dict()
-	for num_layers in range(7, 9):
+	for num_layers in range(2, 3):
 		poss_vals = []
 		choose_from = []
 		for i in range(num_layers):
-			choose_from.append(2)
-			choose_from.append(4)
+			choose_from.append(16)
+			choose_from.append(20)
+			#choose_from.append(24)
 			#choose_from.append(16)
 		for item in permutations(choose_from, r=num_layers):
 			poss_vals.append(item)
 			accuracy_list[item] = []
+		poss_vals = list(set(poss_vals))
 		for poss_combo in poss_vals:
 			clf = MLPClassifier(solver='adam', alpha=1e-5, 
-				hidden_layer_sizes=poss_combo, random_state=0)
-			accuracy_list[poss_combo].append(optimize(clf, train_data, test_data))
+				hidden_layer_sizes=poss_combo, max_iter=500, random_state=0)
+			accuracy = optimize(clf, train_data, test_data)
+			print("Permutation:", poss_combo)
+			print("Accuracy: ", accuracy)
+			accuracy_list[poss_combo].append(accuracy)
 	
 	#for poss_combo in poss_vals:
 
@@ -84,7 +98,7 @@ def gridSearch(train_data, test_data):
 		
 
 	print("Accuracy Dict: ", accuracy_list)
-	print("Best Accuracy: ", max(accuracy_list)[1])
+	print("Best Accuracy: ", max(accuracy_list.values()))
 """
 Optimize on the training set. Trains on train_data and validates on val_data.
 """
@@ -113,34 +127,42 @@ def optimize(model, train_data, test_data):
 
 	# Fit the Logistic Regression model
 	model = model.fit(X_train, y_train)
-	y_pred = model.predict(X_test)
+	print("Probability: ", sum(model.predict_proba(X_test)))
+	y_pred = []
+	for val in model.predict_proba(X_test):
 
-#	# Print stats
-#	print('******Confusion matrix*******')
-#	print(confusion_matrix(y_test,y_pred))
-#	print('******Classification report*******')
-#	print(classification_report(y_test,y_pred))
-#	print('******Accuracy score*******')
-#	print(accuracy_score(y_test,y_pred))
-#	print()
-#
+		if val[1] > 0.8:
+			y_pred.append(1)
+		else:
+			y_pred.append(0)
+	#y_pred = model.predict(X_test)
+
+	# Print stats
+	print('******Confusion matrix*******')
+	print(confusion_matrix(y_test,y_pred))
+	print('******Classification report*******')
+	print(classification_report(y_test,y_pred))
+	print('******Accuracy score*******')
+	print(accuracy_score(y_test,y_pred))
+	print()
+
 #	# Plotting
 #
-#	plt.xlabel("Training Iteration")
-#	plt.ylabel("Log Loss")
-#	plt.plot(model.loss_curve_)
-#	# num_top_to_plot = int(len(X_train[0]) / 2)
-#	# plot_coefficients(model, feature_names, num_top_to_plot)
+	plt.xlabel("Training Iteration")
+	plt.ylabel("Log Loss")
+	plt.plot(model.loss_curve_)
+	num_top_to_plot = 3
+	plot_coefficients(model, feature_names, num_top_to_plot)
 #
 #	# Plot non-normalized confusion matrix
 #	# plot_confusion_matrix(y_test, y_pred, classes=class_names,
 #	#                       title='Confusion matrix, without normalization')
 #
 #	# Plot normalized confusion matrix
-#	plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True,
-#	                      title='Normalized confusion matrix')
+	plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True,
+						title='Normalized confusion matrix')
 #
-#	plt.show()
+	plt.show()
 
 	return (accuracy_score(y_test,y_pred))
 
@@ -240,7 +262,20 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 	return ax
 
 
+def data_augment(data):
+	class_1 = []
+	for x,y in data:
+		if y == 1:
+			class_1.append((x,y))
+	data.extend(class_1)
+	data.extend(class_1)
+	data.extend(class_1)
+	data.extend(class_1)
 
+	y_vals = []
+	for x,y in data:
+		y_vals.append(y)
+	print("Ratio of 1s to 0s:", sum(y_vals) / len(y_vals))
 
 """
 Read in the full dataset, which is saved to a .pickle file in the format of a
