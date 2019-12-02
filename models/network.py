@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 class FoodDesertClassifier(nn.Module):
-    def __init__(self, input_size=10, hidden_dim_list=[5, 10, 8, 12], output_size=2):
+    def __init__(self, input_size=10, hidden_dim_list=[4, 4, 4, 4], output_size=2):
         super(FoodDesertClassifier, self).__init__()
         self.linear1 = nn.Linear(input_size, hidden_dim_list[0])
         self.linear2 = nn.Linear(hidden_dim_list[0], hidden_dim_list[1])
@@ -41,6 +41,8 @@ class FoodDesertClassifier(nn.Module):
         x = self.ReLU(x)
         x = self.linear4(x)
         x = self.ReLU(x)
+
+        
         x = self.output(x)
         return x
         #x = self.softmax(x)
@@ -55,3 +57,18 @@ class FoodDesertClassifier(nn.Module):
 #        x = self.output(x)
 #        print("last: ", x)
 #        return x
+        
+#        x = self.linear5(x)
+#        x = self.ReLU(x)
+#        x = self.linear6(x)
+#        x = self.ReLU(x)
+#        x = self.linear7(x)
+#        x = self.ReLU(x)
+#        x = self.linear8(x)
+#        x = self.ReLU(x)
+#        
+#        self.linear5 = nn.Linear(hidden_dim_list[3], hidden_dim_list[4])
+#        self.linear6 = nn.Linear(hidden_dim_list[4], hidden_dim_list[5])
+#        self.linear7 = nn.Linear(hidden_dim_list[5], hidden_dim_list[6])
+#        self.linear8 = nn.Linear(hidden_dim_list[6], hidden_dim_list[7])
+#        , 4, 4, 4, 4

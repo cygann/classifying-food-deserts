@@ -6,6 +6,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import Perceptron
 import matplotlib.pyplot as plt
+from models.single_layer import LogisticRegressionModel
+from models.network import FoodDesertClassifier
+from train import optimize_nn
 
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
@@ -36,9 +39,9 @@ def main():
     x_train, y_train = standardize_data(train_data)
     x_test, y_test = standardize_data(test_data)
     
-    visualize_data(data_size, x_train, y_train)
+    #visualize_data(data_size, x_train, y_train)
     
-    #find_hidden_vals(train_data, test_data)
+    find_hidden_vals(train_data, test_data)
 
 
 def read_data():
@@ -152,24 +155,29 @@ def standardize_data(data):
         
     return (x_data, y_data)
 
-#def find_hidden_vals(train_data, test_data):
-#    input_dim = len(data[0][0]) # number of features
-#    output_dim = 2 # two classes: food desert and not food desert
-#    hidden_dim_list = [5, 10, 8, 12]
-#
-#    model_nn = FoodDesertClassifier(input_dim, hidden_dim_list, output_dim)
-#    optimize_nn(model_nn, train_data, train_data, test_data)
-#    
-#    for num_layers in range(2, 100):
+def find_hidden_vals(train_data, test_data):
+    input_dim = len(train_data[0][0]) # number of features
+    output_dim = 2 # two classes: food desert and not food desert
+    #hidden_dim_list = [5, 10, 8, 12]
+
+    
+    
+    
+    accuracy_list = []
+    
+#    for num_layers in range(2, 11):
 #        hidden_dim_list = []
 #        for layer in num_layers:
-#            num_nodes = 2
-#            while num_nodes < 100:
+#            for num_nodes in [2, 4, 16]:
 #                hidden_dim_list.append(num_nodes)
 #                num_nodes = pow(num_nodes, 2)
 #        model_nn = FoodDesertClassifier(input_dim, hidden_dim_list, output_dim)
 #        optimize_nn(model_nn, train_data, train_data, test_data)
-
+    accuracy_list = []
+    hidden_list = [[2, 2, 2, 2, 2, 2, 2, 2], [2, 4, 4, 2, 16, 4, 2, 4], [4, 4, 16, 2, 16, 4, 4, 4], [16, 2, 4, 2, 2, 4, 4, 2]]
+    for nodes in hidden_list:
+        model_nn = FoodDesertClassifier(input_dim, nodes, output_dim)
+        accuracy_list.append(optimize_nn(model_nn, train_data, train_data, test_data))
     
 if __name__ == "__main__":
 	main()
