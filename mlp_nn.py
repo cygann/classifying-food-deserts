@@ -53,9 +53,9 @@ def main():
 	gridSearch(train_data, test_data)
 
 	# Make the Logistic Regression model
-	clf = MLPClassifier(solver='adam', alpha=1e-5, 
-		hidden_layer_sizes=(5, 2), random_state=0)
-	optimize(clf, train_data, test_data) # train on train data
+#	clf = MLPClassifier(solver='adam', alpha=1e-5, 
+#		hidden_layer_sizes=(5, 2), random_state=0)
+#	optimize(clf, train_data, test_data) # train on train data
 
 	print('Success')
 
