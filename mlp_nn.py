@@ -7,6 +7,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
+from sklearn.model_selection import ParameterGrid
+from itertools import permutations
 
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
@@ -48,6 +50,8 @@ def main():
 	print(len(train_data), 'training points after filtering.')
 	print(len(test_data), 'testing points after filtering.')
 
+	gridSearch(train_data, test_data)
+
 	# Make the Logistic Regression model
 	clf = MLPClassifier(solver='adam', alpha=1e-5, 
 		hidden_layer_sizes=(5, 2), random_state=0)
@@ -55,7 +59,28 @@ def main():
 
 	print('Success')
 
+def gridSearch(train_data, test_data):
+	poss_vals = []
+	accuracy_list = dict()
+	for num_layers in range(2, 3):
+		choose_from = []
+		for i in range(num_layers):
+			choose_from.append(2)
+			choose_from.append(4)
+			choose_from.append(16)
+		for item in permutations(choose_from, r=num_layers):
+			poss_vals.append(item)
+			accuracy_list[item] = []
+	
+	for poss_combo in poss_vals:
 
+		for alpha_val in [1e-6, 1e-4, 1e-2]:
+			clf = MLPClassifier(solver='adam', alpha=alpha_val, 
+				hidden_layer_sizes=poss_combo, random_state=0)
+			accuracy_list[poss_combo].append((alpha_val, optimize(clf, train_data, test_data)))
+
+	print("Accuracy Dict: ", accuracy_list)
+	print("Best Accuracy: ", max(accuracy_list)[1])
 """
 Optimize on the training set. Trains on train_data and validates on val_data.
 """
@@ -86,28 +111,34 @@ def optimize(model, train_data, test_data):
 	model = model.fit(X_train, y_train)
 	y_pred = model.predict(X_test)
 
-	# Print stats
-	print('******Confusion matrix*******')
-	print(confusion_matrix(y_test,y_pred))
-	print('******Classification report*******')
-	print(classification_report(y_test,y_pred))
-	print('******Accuracy score*******')
-	print(accuracy_score(y_test,y_pred))
-	print()
+#	# Print stats
+#	print('******Confusion matrix*******')
+#	print(confusion_matrix(y_test,y_pred))
+#	print('******Classification report*******')
+#	print(classification_report(y_test,y_pred))
+#	print('******Accuracy score*******')
+#	print(accuracy_score(y_test,y_pred))
+#	print()
+#
+#	# Plotting
+#
+#	plt.xlabel("Training Iteration")
+#	plt.ylabel("Log Loss")
+#	plt.plot(model.loss_curve_)
+#	# num_top_to_plot = int(len(X_train[0]) / 2)
+#	# plot_coefficients(model, feature_names, num_top_to_plot)
+#
+#	# Plot non-normalized confusion matrix
+#	# plot_confusion_matrix(y_test, y_pred, classes=class_names,
+#	#                       title='Confusion matrix, without normalization')
+#
+#	# Plot normalized confusion matrix
+#	plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True,
+#	                      title='Normalized confusion matrix')
+#
+#	plt.show()
 
-	# Plotting
-	# num_top_to_plot = int(len(X_train[0]) / 2)
-	# plot_coefficients(model, feature_names, num_top_to_plot)
-
-	# Plot non-normalized confusion matrix
-	# plot_confusion_matrix(y_test, y_pred, classes=class_names,
-	#                       title='Confusion matrix, without normalization')
-
-	# Plot normalized confusion matrix
-	plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True,
-	                      title='Normalized confusion matrix')
-
-	plt.show()
+	return (accuracy_score(y_test,y_pred))
 
 
 """
