@@ -3,11 +3,9 @@ import random
 import pickle
 import numpy as np
 from sklearn.neural_network import MLPClassifier
-from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
-from sklearn.model_selection import ParameterGrid
 from itertools import permutations
 
 
