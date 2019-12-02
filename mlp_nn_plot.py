@@ -2,7 +2,7 @@ import os
 import random
 import pickle
 import numpy as np
-from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
@@ -20,7 +20,10 @@ FULL_DATA_PICKLE = os.path.join(path_to_script, "data/full_data_v2.pickle")
 feature_names = ['Population', 'Median Gross Rent (Dollars)', 'Median Home Value (Dollars)',
 					 'Unemployed', 'Geographic mobility', 'No Health insurance coverage',
 					 'Income below poverty level', 'Travel time to work', 'Median Income', 'Education',
-					 '% Change Population', '% Change Median Gross Rent (Dollars)', '% Change Median Home Value (Dollars)', '% Change Unemployed', '% Change Geographic mobility', '% Change No Health insurance coverage', '% Change Income below poverty level', '% Change Travel time to work', '% Change Median Income', '% Change Education'] 
+					 '% Change Population', '% Change Median Gross Rent (Dollars)', '% Change Median Home Value (Dollars)',
+					 '% Change Unemployed', '% Change Geographic mobility', '% Change No Health insurance coverage',
+					 '% Change Income below poverty level', '% Change Travel time to work', '% Change Median Income', '% Change Education']
+
 
 class_names = [0, 1]
 
@@ -45,10 +48,10 @@ def main():
 	print(len(train_data), 'training points after filtering.')
 	print(len(test_data), 'testing points after filtering.')
 
-	# Fit the SVM
-	# class_weight_dict = {0:1, 1:4.2} # food desert class is weighed ten times heavier than food desert class
-	svclassifier = SVC(kernel='linear', gamma='scale', class_weight='balanced', C=10.0)
-	optimize(svclassifier, train_data, test_data) # train on train data
+	# Make the Logistic Regression model
+	clf = MLPClassifier(solver='adam', alpha=1e-5, 
+		hidden_layer_sizes=(5, 2), random_state=0)
+	optimize(clf, train_data, test_data) # train on train data
 
 	print('Success')
 
@@ -79,8 +82,8 @@ def optimize(model, train_data, test_data):
 		X_train[i] = [np.nan_to_num(f) for f in X_train[i]]
 
 
-	# Fit the SVM model
-	clf = model.fit(X_train, y_train)
+	# Fit the Logistic Regression model
+	model = model.fit(X_train, y_train)
 	y_pred = model.predict(X_test)
 
 	# Print stats
@@ -93,8 +96,8 @@ def optimize(model, train_data, test_data):
 	print()
 
 	# Plotting
-	num_top_to_plot = int(len(X_train[0]) / 2)
-	plot_coefficients(model, feature_names, num_top_to_plot)
+	# num_top_to_plot = int(len(X_train[0]) / 2)
+	# plot_coefficients(model, feature_names, num_top_to_plot)
 
 	# Plot non-normalized confusion matrix
 	# plot_confusion_matrix(y_test, y_pred, classes=class_names,

@@ -2,7 +2,8 @@ import os
 import random
 import pickle
 import numpy as np
-from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
@@ -20,7 +21,9 @@ FULL_DATA_PICKLE = os.path.join(path_to_script, "data/full_data_v2.pickle")
 feature_names = ['Population', 'Median Gross Rent (Dollars)', 'Median Home Value (Dollars)',
 					 'Unemployed', 'Geographic mobility', 'No Health insurance coverage',
 					 'Income below poverty level', 'Travel time to work', 'Median Income', 'Education',
-					 '% Change Population', '% Change Median Gross Rent (Dollars)', '% Change Median Home Value (Dollars)', '% Change Unemployed', '% Change Geographic mobility', '% Change No Health insurance coverage', '% Change Income below poverty level', '% Change Travel time to work', '% Change Median Income', '% Change Education'] 
+					 '% Change Population', '% Change Median Gross Rent (Dollars)', '% Change Median Home Value (Dollars)',
+					 '% Change Unemployed', '% Change Geographic mobility', '% Change No Health insurance coverage',
+					 '% Change Income below poverty level', '% Change Travel time to work', '% Change Median Income', '% Change Education']
 
 class_names = [0, 1]
 
@@ -45,10 +48,15 @@ def main():
 	print(len(train_data), 'training points after filtering.')
 	print(len(test_data), 'testing points after filtering.')
 
-	# Fit the SVM
-	# class_weight_dict = {0:1, 1:4.2} # food desert class is weighed ten times heavier than food desert class
-	svclassifier = SVC(kernel='linear', gamma='scale', class_weight='balanced', C=10.0)
-	optimize(svclassifier, train_data, test_data) # train on train data
+	# # Fit the Random Forest Regressor
+	# # class_weight_dict = {0:1, 1:4.2} # food desert class is weighed ten times heavier than food desert class
+	# rfregressor = RandomForestRegressor(n_jobs=-1, random_state=0) # n_jobs is number of parallel jobs, -1 means use all processors
+	# optimize(rfregressor, train_data, test_data) # train on train data
+
+
+	# Fit the Random Forest Classifier
+	rfclassifier = RandomForestClassifier(n_jobs=-1, random_state=0, class_weight='balanced') # n_jobs is number of parallel jobs, -1 means use all processors
+	optimize(rfclassifier, train_data, test_data) # train on train data
 
 	print('Success')
 
@@ -79,8 +87,8 @@ def optimize(model, train_data, test_data):
 		X_train[i] = [np.nan_to_num(f) for f in X_train[i]]
 
 
-	# Fit the SVM model
-	clf = model.fit(X_train, y_train)
+	# Fit the Random Forest model
+	rf = model.fit(X_train, y_train)
 	y_pred = model.predict(X_test)
 
 	# Print stats
@@ -95,7 +103,7 @@ def optimize(model, train_data, test_data):
 	# Plotting
 	num_top_to_plot = int(len(X_train[0]) / 2)
 	plot_coefficients(model, feature_names, num_top_to_plot)
-
+	
 	# Plot non-normalized confusion matrix
 	# plot_confusion_matrix(y_test, y_pred, classes=class_names,
 	#                       title='Confusion matrix, without normalization')
@@ -133,14 +141,14 @@ Plot the weights assigned to the features (coefficients in the primal problem).
 This is only available in the case of a linear kernel.
 """
 def plot_coefficients(classifier, feature_names, top_features):
-	coef = classifier.coef_.ravel()
+	coef = classifier.feature_importances_.ravel()
 	top_positive_coefficients = np.argsort(coef)[-top_features:]
 	top_negative_coefficients = np.argsort(coef)[:top_features]
 	top_coefficients = np.hstack([top_negative_coefficients, top_positive_coefficients])
 
 	# create plot
 	plt.figure(figsize=(15, 5))
-	colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
+	colors = ['purple' for c in coef[top_coefficients]]
 	plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
 	feature_names = np.array(feature_names)
 	plt.xticks(np.arange(0, 1 + 2 * top_features), feature_names[top_coefficients], rotation=60, ha='right')

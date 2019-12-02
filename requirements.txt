@@ -5,3 +5,5 @@ tqdm
 pandas
 pickle
 torch
+sklern
+matplotlib

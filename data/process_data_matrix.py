@@ -7,11 +7,10 @@ import pickle
 import random
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
-FULL_DATA_PICKLE = os.path.join(path_to_script, "data_sample_final.pickle")
-data_files = [os.path.join(path_to_script, "data_parts/data_i.pickle"),
-        os.path.join(path_to_script, "data_parts/data_ii.pickle"),
-        os.path.join(path_to_script, "data_parts/data_iii.pickle")]
-input_data = os.path.join(path_to_script, "data_sample.pickle")
+FULL_DATA_PICKLE = os.path.join(path_to_script, "full_data_v2.pickle")
+data_files = [os.path.join(path_to_script, "data_parts_v2/data_i.pickle"),
+        os.path.join(path_to_script, "data_parts_v2/data_ii.pickle"),
+        os.path.join(path_to_script, "data_parts_v2/data_iii.pickle")]
 
 """
 Since data was processed in multiple parts on myth machines, the three pickle
@@ -40,16 +39,17 @@ feature matrix into a feature vector of size 20, where the first 10 features
 are the 2015 values and the last 10 are the percent changes from 2012 to 2015.
 This dict is returned by the function.
 """
-def build_percent_change_features():
-    data = None
-    with open(input_data, 'rb') as fp:
-        data = pickle.load(fp)
+def build_percent_change_features(merged_data):
 
-    keys = list(data.keys())
+    keys = list(merged_data.keys())
     final_data = {}
+    num_nan = 0
 
+    # Rebuild the feature of every zipcode from a 10 x 2 matrix to a length 20
+    # vector, where the last 10 features are the percent changes from 2012 to
+    # 2015.
     for zipcode in keys:
-        point = data[zipcode]
+        point = merged_data[zipcode]
         data_matrix = point[0]
         label = point[1]
 
@@ -58,21 +58,35 @@ def build_percent_change_features():
         # Take first column, which represents 2012.
         data_2012 = data_matrix[:, 0]
         diff = data_2015 - data_2012
+        
+        for i in range(len(data_2012)):
+            if data_2012[i] == 0:
+                data_2012[i] = 1
+
         percent = diff / data_2012 # Get the percent change.
 
         feature_vec = np.concatenate((data_2015, percent))
+        is_nan = False
+        for f in feature_vec:
+            if np.isnan(f):
+                num_nan += 1
+                is_nan = True
+                break
 
-        final_data[zipcode] = (feature_vec, label)
+        if not is_nan: final_data[zipcode] = (feature_vec, label)
+
+    print('Number of nan:', num_nan)
 
     return final_data
 
 def main():
-    data = build_percent_change_features()
-    print('Successfully read in a dataset of', len(data), 'datapoints.')
+    merged_data = coalese_data_files()
+    cleaned_data = build_percent_change_features(merged_data)
+    print('Successfully read in a dataset of', len(cleaned_data), 'datapoints.')
 
     # Save full data to pickle.
     with open(FULL_DATA_PICKLE, 'wb') as handle:
-        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(cleaned_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     print("Successfully merged all paritions of zip code data.")
 
