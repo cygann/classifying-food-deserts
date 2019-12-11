@@ -9,7 +9,7 @@ import data.data_utils as data_utils
 import pickle
 import random
 from sklearn import preprocessing
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn import metrics
 from tqdm import trange
 import matplotlib.pyplot as plt
 
@@ -30,8 +30,8 @@ def main(argv):
     data_and_labels = data_utils.read_data()
 
     # Oversample
-    # data_and_labels = data_utils.oversample(data_and_labels)
-    data_and_labels = data_utils.undersample(data_and_labels)
+    data_and_labels = data_utils.oversample(data_and_labels)
+    # data_and_labels = data_utils.undersample(data_and_labels)
 
     # Standardize the data.
     x_data = [x[0] for x in data_and_labels]
@@ -76,7 +76,7 @@ def optimize_nn(model, train_data, val_data, test_data):
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
    
-    num_epochs = 10
+    num_epochs = 3
     iter = 0
     loss_list = []
     accuracy_list = []
@@ -143,7 +143,7 @@ def optimize_nn(model, train_data, val_data, test_data):
                         plot_data(accuracy_list, loss_list, val_accuracy_list,
                                 val_loss_list, iters, iter)
                     
-    eval_model_nn(model, loss, val_data, "Validation")
+    eval_model_nn(model, loss, test_data, "Test")
     return loss
 
 def plot_data(accuracy_list, loss_list, val_accuracy_list, val_loss_list,
@@ -171,6 +171,8 @@ def plot_data(accuracy_list, loss_list, val_accuracy_list, val_loss_list,
 def eval_model_nn(model, loss, data, testType):
     num_correct = 0
     total = 0
+    y_test = []
+    y_pred = []
     for x, y in data:
         if not np.isnan(x).any():
             total += 1
@@ -180,9 +182,21 @@ def eval_model_nn(model, loss, data, testType):
             num_correct = (num_correct + 1 if (prediction== y) 
                     else num_correct)
 
+            y_test.append(y)
+            y_pred.append(prediction)
+
     accuracy = 100.0 * num_correct / total
-    string = 'VALIDATION Loss: {}. ' + testType + ' Accuracy: {}.'
+    string = 'Loss: {}. ' + testType + ' Accuracy: {}.'
     print(string.format(loss.item(), accuracy))
+    print()
+    print('******Confusion matrix*******')
+    print(metrics.confusion_matrix(y_test, y_pred))
+    print('******Classification report*******')
+    print(metrics.classification_report(y_test, y_pred))
+    print('******Accuracy score*******')
+    print(metrics.accuracy_score(y_test, y_pred))
+    print()
+
     return accuracy
 
 if __name__ == "__main__":
