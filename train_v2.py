@@ -60,25 +60,10 @@ def main(argv):
 def valueToTensor(v):
     return torch.tensor(v).float()
 
-def eval_model(model, loss, data, testType):
-    num_correct = 0
-    total = 0
-    for x, y in data:
-        if not np.isnan(x).any():
-            total += 1
-            x = Variable(torch.tensor(x).float())
-            prediction = model.predict(x)
-            num_correct = (num_correct + 1 if (prediction == y) 
-                    else num_correct)
-
-    accuracy = 100.0 * num_correct / total
-    string = 'Loss: {}. ' + testType + ' Accuracy: {}.'
-    print(string.format(loss.item(), accuracy))
-
+"""
+Optimize neural network model on the training set
+"""
 def optimize_nn(model, train_data, val_data, test_data):
-    """
-    Optimize neural network model on the training set
-    """
     print('*******Training*******')
     
     criterion = nn.CrossEntropyLoss()
@@ -139,12 +124,13 @@ def eval_model_nn(model, loss, data, testType):
     total = 0
     for x, y in data:
         if not np.isnan(x).any():
-            total+=1
+            total += 1
             x = Variable(torch.tensor(x).float())
-            pred = model(x)[0]
-            pred.unsqueeze_(0) # add a dimension before passing to criterion
-            _, predicted = torch.max(pred.data, 0)
-            num_correct = (num_correct+1 if (predicted == y) else num_correct)
+            prediction = model.predict(x)
+
+            num_correct = (num_correct + 1 if (predicted == y) 
+                    else num_correct)
+
     accuracy = 100.0 * num_correct / total
     string = 'Loss: {}. ' + testType + ' Accuracy: {}.'
     print(string.format(loss.item(), accuracy))
