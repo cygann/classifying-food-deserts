@@ -30,8 +30,8 @@ def main(argv):
     data_and_labels = data_utils.read_data()
 
     # Oversample
-    data_and_labels = data_utils.oversample(data_and_labels)
-    # data_and_labels = data_utils.undersample(data_and_labels)
+    # data_and_labels = data_utils.oversample(data_and_labels)
+    data_and_labels = data_utils.undersample(data_and_labels)
 
     # Standardize the data.
     x_data = [x[0] for x in data_and_labels]
@@ -55,7 +55,7 @@ def main(argv):
 
     input_dim = len(data[0][0]) # number of features
     output_dim = 2 # two classes: food desert and not food desert
-    hidden_dim_list = [16, 36, 16, 8]
+    hidden_dim_list = [16, 36, 36, 24, 16, 8]
 
     model_nn = FoodDesertClassifier(input_dim, hidden_dim_list,
             output_dim).to(device)
@@ -76,7 +76,7 @@ def optimize_nn(model, train_data, val_data, test_data):
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
    
-    num_epochs = 3
+    num_epochs = 10
     iter = 0
     loss_list = []
     accuracy_list = []
