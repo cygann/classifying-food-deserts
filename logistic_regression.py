@@ -136,6 +136,7 @@ Plot the weights assigned to the features (coefficients in the primal problem).
 This is only available in the case of a linear kernel.
 """
 def plot_coefficients(classifier, feature_names, top_features):
+        top_features = 3
 	coef = classifier.coef_.ravel()
 	top_positive_coefficients = np.argsort(coef)[-top_features:]
 	top_negative_coefficients = np.argsort(coef)[:top_features]

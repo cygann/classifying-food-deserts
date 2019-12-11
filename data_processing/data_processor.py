@@ -22,8 +22,8 @@ for i in range(len(ZIPCODES_)):
 
 # Contains map of zipcodes to binary food desert labels.
 path_to_script = os.path.dirname(os.path.abspath(__file__))
-LABELS_PICKLE = os.path.join(path_to_script, "data/labels.pickle")
-FULL_DATA_PICKLE = os.path.join(path_to_script, "data/test_data.pickle")
+LABELS_PICKLE = os.path.join(path_to_script, "../data/labels.pickle")
+FULL_DATA_PICKLE = os.path.join(path_to_script, "../data/test_features_data.pickle")
 
 """
 Parses a census api variable file. Each row contains one or more census
@@ -141,6 +141,7 @@ def fetch_features(reader, years, unique_ids, results,
     else:
         out = np.stack(features)
         results[zipcode] = (out, label)
+        print('zip:', zipcode, 'features', results[zipcode])
 
     # print('zip:', zipcode, 'features:', results[zipcode])
 
@@ -238,6 +239,7 @@ def main():
 
     # Get the full data fold from the census.
     years = [2012, 2015]
+    years = [2015]
     data = obtain_features_from_census(reader, labels, years, unique_ids)
 
     num_deserts = 0

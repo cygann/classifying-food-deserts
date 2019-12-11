@@ -33,6 +33,29 @@ def coalese_data_files():
 
     return merged_data
     
+def oversample(data_and_labels):
+    random.shuffle(data_and_labels)
+    new_data = []
+    labels = [item[1] for item in data_and_labels]
+    # Can tell us how many food deserts there are. For balance, we can multiply
+    # the food desert datapoints by four.
+    # need = np.sum([1 if label == 0 else 0 for label in labels])
+
+    for item in data_and_labels:
+        label = item[1]
+        vals = item[0]
+        if label == 1:
+            new_data.append(item)
+            new_data.append(item)
+            new_data.append(item)
+            new_data.append(item)
+        elif label == 0:
+            new_data.append(item)
+
+    return new_data
+
+def undersample():
+    pass
 
 def main():
     data = coalese_data_files()
