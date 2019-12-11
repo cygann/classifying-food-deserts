@@ -25,23 +25,6 @@ def main(argv):
     # each representing a zipcode datapoint.
     data_and_labels = read_data()
 
-    # Undersample
-    # random.shuffle(data_and_labels)
-    # new_data = []
-    # not_count = 0
-    # yes_count = 0
-    # for item in data_and_labels:
-        # label = item[1]
-        # vals = item[0]
-        # if label == 0 and not_count < 2000:
-            # new_data.append(item)
-            # not_count += 1
-        # elif label == 1 and yes_count < 2000:
-            # yes_count += 1
-            # new_data.append(item)
-# 
-    # data_and_labels = new_data
-
     # Oversample
     data_and_labels = oversample(data_and_labels)
 
