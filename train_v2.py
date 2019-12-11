@@ -26,7 +26,8 @@ def main(argv):
     data_and_labels = data_utils.read_data()
 
     # Oversample
-    data_and_labels = data_utils.oversample(data_and_labels)
+    # data_and_labels = data_utils.oversample(data_and_labels)
+    data_and_labels = data_utils.undersample(data_and_labels)
 
     # Standardize the data.
     x_data = [x[0] for x in data_and_labels]
@@ -128,7 +129,7 @@ def eval_model_nn(model, loss, data, testType):
             x = Variable(torch.tensor(x).float())
             prediction = model.predict(x)
 
-            num_correct = (num_correct + 1 if (predicted == y) 
+            num_correct = (num_correct + 1 if (prediction== y) 
                     else num_correct)
 
     accuracy = 100.0 * num_correct / total
