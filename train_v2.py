@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
 from models.network import FoodDesertClassifier
-from data.data_utils import oversample, undersample
+import data.data_utils as data_utils
 import pickle
 import random
 from sklearn import preprocessing
@@ -23,10 +23,10 @@ def main(argv):
 
     # Read in data from .pickle as a list of (features, label) tuples
     # each representing a zipcode datapoint.
-    data_and_labels = read_data()
+    data_and_labels = data_utils.read_data()
 
     # Oversample
-    data_and_labels = oversample(data_and_labels)
+    data_and_labels = data_utils.oversample(data_and_labels)
 
     # Standardize the data.
     x_data = [x[0] for x in data_and_labels]
@@ -59,30 +59,6 @@ def main(argv):
 
 def valueToTensor(v):
     return torch.tensor(v).float()
-
-
-"""
-Read in the full dataset, which is saved to a .pickle file in the format of a
-dict that maps zipcodes to tuples of (feature vector, label).
-This function will take off the zipcode field for training, which is not needed
-in the neural network, thus just returning a list of the (feature vector, label)
-tuples.
-"""
-def read_data():
-    data_dict = None
-    with open(FULL_DATA_PICKLE, 'rb') as fp:
-        data_dict = pickle.load(fp)
-
-    data = [] # List to store the (features, label) tuples.
-    zipcodes = list(data_dict.keys())
-    for z in zipcodes:
-        # Just keep the tuple, zipcode is not needed for training.
-        datapoint = data_dict[z]
-        data.append(datapoint)
-
-    print('Read in', len(data), 'datapoints.')
-
-    return data
 
 def eval_model(model, loss, data, testType):
     num_correct = 0

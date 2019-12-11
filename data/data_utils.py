@@ -7,7 +7,7 @@ import pickle
 import random
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
-FULL_DATA_PICKLE = os.path.join(path_to_script, "full_data.pickle")
+FULL_DATA_PICKLE = os.path.join(path_to_script, "full_data_v2.pickle")
 data_files = [os.path.join(path_to_script, "data_parts/data_i.pickle"),
         os.path.join(path_to_script, "data_parts/data_ii.pickle"),
         os.path.join(path_to_script, "data_parts/data_iii.pickle")]
@@ -78,6 +78,30 @@ def undersample(data_and_labels):
             new_data.append(item)
 
     return new_data
+
+"""
+Read in the full dataset, which is saved to a .pickle file in the format of a
+dict that maps zipcodes to tuples of (feature vector, label).
+This function will take off the zipcode field for training, which is not needed
+in the neural network, thus just returning a list of the (feature vector, label)
+tuples.
+"""
+def read_data():
+    data_dict = None
+    with open(FULL_DATA_PICKLE, 'rb') as fp:
+        data_dict = pickle.load(fp)
+
+    data = [] # List to store the (features, label) tuples.
+    zipcodes = list(data_dict.keys())
+    for z in zipcodes:
+        # Just keep the tuple, zipcode is not needed for training.
+        datapoint = data_dict[z]
+        data.append(datapoint)
+
+    print('Read in', len(data), 'datapoints.')
+
+    return data
+
 
 def main():
     data = coalese_data_files()
