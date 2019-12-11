@@ -9,7 +9,9 @@ import data.data_utils as data_utils
 import pickle
 import random
 from sklearn import preprocessing
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from tqdm import trange
+import matplotlib.pyplot as plt
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 # Path to the complete dataset.
@@ -20,6 +22,8 @@ Program that trains and runs the the food desert classifier network.
 """
 def main(argv):
     # random.seed(21) # So we have same parition every time.
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Read in data from .pickle as a list of (features, label) tuples
     # each representing a zipcode datapoint.
@@ -51,9 +55,10 @@ def main(argv):
 
     input_dim = len(data[0][0]) # number of features
     output_dim = 2 # two classes: food desert and not food desert
-    hidden_dim_list = [5, 10, 8, 12]
+    hidden_dim_list = [16, 36, 16, 8]
 
-    model_nn = FoodDesertClassifier(input_dim, hidden_dim_list, output_dim)
+    model_nn = FoodDesertClassifier(input_dim, hidden_dim_list,
+            output_dim).to(device)
     loss = optimize_nn(model_nn, train_data, val_data, test_data)
     
     eval_model_nn(model_nn, loss, test_data, "Testing")
@@ -67,11 +72,19 @@ Optimize neural network model on the training set
 def optimize_nn(model, train_data, val_data, test_data):
     print('*******Training*******')
     
+    # criterion = nn.CrossEntropyLoss(weight=torch.tensor([4.187, 1]))
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-    
-    num_epochs = 5
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+   
+    num_epochs = 10
     iter = 0
+    loss_list = []
+    accuracy_list = []
+    iters = []
+
+    val_loss_list = []
+    val_accuracy_list = []
+
     for epoch in range(num_epochs):
         running_loss = 0
         print('EPOCH', epoch)
@@ -90,6 +103,7 @@ def optimize_nn(model, train_data, val_data, test_data):
     
                 # Calculate Loss: softmax --> cross entropy loss
                 loss = criterion(pred.float(), y.long().unsqueeze(0))
+                # loss = criterion(pred.float(), y)
     
                 # Backward pass to get gradients w.r.t parameters
                 loss.backward()
@@ -100,6 +114,7 @@ def optimize_nn(model, train_data, val_data, test_data):
                 running_loss += loss.item()
                 
                 iter += 1
+                # loss_list.append(loss.item())
                 if iter % 100 == 0:
                     # Calculate accuracy on train_data
                     num_correct = 0
@@ -116,9 +131,42 @@ def optimize_nn(model, train_data, val_data, test_data):
                     accuracy = 100.0 * num_correct / total
                     print('Iteration: {}. Loss: {}. Training Accuracy: {}.'
                             .format(iter, loss.item(), accuracy))
+
+                    accuracy_list.append(accuracy)
+                    loss_list.append(loss.item())
+                    iters.append(iter)
+                    if iter % 5000 == 0: 
+                        val_accuracy = eval_model_nn(model, loss, val_data,
+                                "Validation")
+                        val_accuracy_list.append(val_accuracy)
+                        val_loss_list.append(loss)
+                        plot_data(accuracy_list, loss_list, val_accuracy_list,
+                                val_loss_list, iters, iter)
                     
     eval_model_nn(model, loss, val_data, "Validation")
     return loss
+
+def plot_data(accuracy_list, loss_list, val_accuracy_list, val_loss_list,
+        iters, iter):
+    plt.subplot(211)
+    plt.plot(iters, accuracy_list)
+    plt.xlabel('Iteration')
+    plt.ylabel('Accuracy')
+
+    plt.subplot(212)
+    plt.plot(iters, loss_list)
+    plt.xlabel('Iteration')
+    plt.ylabel('Loss')
+
+    # plt.subplot(313)
+    # plt.plot(len(val_accuracy_list), val_accuracy_list)
+    # plt.xlabel('Iteration')
+    # plt.ylabel('Validation accuracy')
+
+    filename = './logs/plot' + str(iter) + '.png'
+
+    plt.savefig(filename)
+    plt.close('all')
 
 def eval_model_nn(model, loss, data, testType):
     num_correct = 0
@@ -133,7 +181,7 @@ def eval_model_nn(model, loss, data, testType):
                     else num_correct)
 
     accuracy = 100.0 * num_correct / total
-    string = 'Loss: {}. ' + testType + ' Accuracy: {}.'
+    string = 'VALIDATION Loss: {}. ' + testType + ' Accuracy: {}.'
     print(string.format(loss.item(), accuracy))
     return accuracy
 
