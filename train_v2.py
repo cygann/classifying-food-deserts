@@ -31,7 +31,7 @@ def main(argv):
 
     # Oversample
     # data_and_labels = data_utils.oversample(data_and_labels)
-    data_and_labels = data_utils.undersample(data_and_labels)
+    # data_and_labels = data_utils.undersample(data_and_labels)
 
     # Standardize the data.
     x_data = [x[0] for x in data_and_labels]
@@ -48,14 +48,16 @@ def main(argv):
     train_data = data[:(data_size // 10) * 8]
     val_data = data[(data_size // 10) * 8 : (data_size // 10) * 9]
     test_data = data[(data_size // 10) * 9 :]
+
+    train_data = data_utils.oversample_train(train_data)
+
     print(len(train_data), 'training points.')
     print(len(val_data), 'validation points.')
     print(len(test_data), 'testing points.')
 
-
     input_dim = len(data[0][0]) # number of features
     output_dim = 2 # two classes: food desert and not food desert
-    hidden_dim_list = [16, 36, 36, 24, 16, 8]
+    hidden_dim_list = [16, 36, 36, 24]
 
     model_nn = FoodDesertClassifier(input_dim, hidden_dim_list,
             output_dim).to(device)

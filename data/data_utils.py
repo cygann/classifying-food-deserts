@@ -58,6 +58,39 @@ def oversample(data_and_labels):
 
     return new_data
 
+def oversample_train(train):
+    random.shuffle(train)
+    num_not_desert = 0
+    num_desert = 0
+    deserts = []
+    new_train = []
+    for item in train:
+        label = item[1]
+        if label == 0:
+            num_not_desert += 1
+        else:
+            deserts.append(item)
+            num_desert += 1
+        new_train.append(item)
+
+    print('Num deserts:', num_desert)
+    print('Num non-deserts:', num_not_desert)
+
+    # i = 0
+    # while num_desert < num_not_desert:
+        # new_train.append(deserts[i])
+        # i += 1
+        # if i == len(deserts): i = 0
+        # num_desert += 1
+    for item in deserts:
+        new_train.append(item)
+        new_train.append(item)
+        new_train.append(item)
+        new_train.append(item)
+
+    random.shuffle(new_train)
+    return new_train
+
 """
 Given a the food desert dataset, this will undersample it to include fewer 
 non-food desert datapoints, making it more balanced.
