@@ -4,11 +4,14 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
-from models.single_layer import LogisticRegressionModel
 from models.network import FoodDesertClassifier
+import data.data_utils as data_utils
 import pickle
 import random
+from sklearn import preprocessing
+from sklearn import metrics
 from tqdm import trange
+import matplotlib.pyplot as plt
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 # Path to the complete dataset.
@@ -18,11 +21,29 @@ FULL_DATA_PICKLE = os.path.join(path_to_script, "data/full_data_v2.pickle")
 Program that trains and runs the the food desert classifier network.
 """
 def main(argv):
-    random.seed(21) # So we have same parition every time.
+    # random.seed(21) # So we have same parition every time.
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Read in data from .pickle as a list of (features, label) tuples
     # each representing a zipcode datapoint.
-    data = read_data()
+    data_and_labels = data_utils.read_data()
+
+    need = np.sum([1 if label[1] == 0 else 0 for label in data_and_labels])
+    print('need', need)
+
+    # Oversample
+    # data_and_labels = data_utils.oversample(data_and_labels)
+    # data_and_labels = data_utils.undersample(data_and_labels)
+
+    # Standardize the data.
+    x_data = [x[0] for x in data_and_labels]
+    y_data = [x[1] for x in data_and_labels]
+    scaler = preprocessing.StandardScaler()
+    x_data = scaler.fit_transform(x_data)
+
+    # New dataset that is standardized.
+    data = [(x_data[i], y_data[i]) for i in range(len(x_data))]
 
     # Separate 80/10/10 as train/val/test partition.
     data_size = len(data)
@@ -30,196 +51,64 @@ def main(argv):
     train_data = data[:(data_size // 10) * 8]
     val_data = data[(data_size // 10) * 8 : (data_size // 10) * 9]
     test_data = data[(data_size // 10) * 9 :]
+
+    train_data = data_utils.oversample_train(train_data)
+
     print(len(train_data), 'training points.')
     print(len(val_data), 'validation points.')
     print(len(test_data), 'testing points.')
 
-
     input_dim = len(data[0][0]) # number of features
     output_dim = 2 # two classes: food desert and not food desert
-    hidden_dim_list = [5, 10, 8, 12]
+    hidden_dim_list = [16, 36, 36, 24]
 
-    model_nn = FoodDesertClassifier(input_dim, hidden_dim_list, output_dim)
-    optimize_nn(model_nn, train_data, val_data, test_data)
+    model_nn = FoodDesertClassifier(input_dim, hidden_dim_list,
+            output_dim).to(device)
+    loss = optimize_nn(model_nn, train_data, val_data, test_data)
     
-    model = LogisticRegressionModel(input_dim, output_dim)
-    optimize(model, train_data, val_data, test_data) # train on train data
-    
-    #test(model, test_data) # test on test data
- 
-
-"""
-Optimize on the training set. Trains on train_data and validates on val_data.
-"""
-def optimize(model, train_data, val_data, test_data):
-    """
-    Optimize on the training set
-    """
-    print('*******Training*******')
-
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
-    
-    stop = False
-    num_epochs = 5
-    iter = 0
-    for epoch in range(num_epochs):
-        print('EPOCH', epoch)
-        for x,y in train_data:
-            #print('Iteration number: ', iter)
-            if not np.isnan(x).any():
-                
-                #print('y is:', y)
-                # print('Zipcode:', ZIPCODES[i])
-       
-                # Load data as Variable
-                x = Variable(valueToTensor(np.asmatrix(x)))
-                y = Variable(valueToTensor(y))
-                # print('x is:', x)
-                #print('x is:', x)
-    
-                # Clear gradients w.r.t parameters
-                optimizer.zero_grad()
-    
-                # Forward pass to get output/logits
-                pred = model(x)[0]
-                #assert not torch.isnan(pred).any(), pred
-                #print('pred is', pred.data)
-    
-                # Calculate Loss: softmax --> cross entropy loss
-                #import pdb; pdb.set_trace()
-                loss = criterion(pred.float(), y.long().unsqueeze(0))
-                #print('loss is: ', loss)
-    
-                # Backward pass to get gradients w.r.t parameters
-                loss.backward()
-    
-                # Updating parameters
-                optimizer.step()
-    
-                iter += 1
-                if iter % 100 == 0:
-                    # Calculate accuracy on train_data
-                    num_correct = 0
-                    total = 0
-                    for x, y in train_data:
-                        if not np.isnan(x).any():
-                            total+=1
-                            x = Variable(valueToTensor(x))
-                            pred = model(x)[0]
-                            pred.unsqueeze_(0) # add a dimension before passing to criterion
-                            _, predicted = torch.max(pred.data, 0)
-                            num_correct = (num_correct+1 if (predicted[0] == y) else num_correct)
-                            #print('num_correct:', num_correct, ', total', len(val_data))
-                    accuracy = 100.0 * num_correct / total
-                    print('Iteration: {}. Loss: {}. Training Accuracy: {}.'.format(iter, loss.item(), accuracy))
-                    
-                if iter == 200:
-                    weights = model(x)[1]
-                    print(weights)
-                    eval_model(model, loss, test_data, "Testing")
-                    eval_model(model, loss, val_data, "Validation")
-#                    num_correct = 0
-#                    total = 0
-#                    for x, y in test_data:
-#                        if not np.isnan(x).any():
-#                            total+=1
-#                            x = Variable(valueToTensor(x))
-#                            pred = model(x)
-#                            pred.unsqueeze_(0) # add a dimension before passing to criterion
-#                            _, predicted = torch.max(pred.data, 0)
-#                            num_correct = (num_correct+1 if (predicted[0] == y) else num_correct)
-#                    #print('num_correct:', num_correct, ', total', len(val_data))
-#                    accuracy = 100.0 * num_correct / total
-#                    print('Loss: {}. Testing Accuracy: {}.'.format(loss.item(), accuracy))
-        #print()
-    
-
+    eval_model_nn(model_nn, loss, test_data, "Testing")
 
 def valueToTensor(v):
     return torch.tensor(v).float()
 
-
 """
-Read in the full dataset, which is saved to a .pickle file in the format of a
-dict that maps zipcodes to tuples of (feature vector, label).
-This function will take off the zipcode field for training, which is not needed
-in the neural network, thus just returning a list of the (feature vector, label)
-tuples.
+Optimize neural network model on the training set
 """
-def read_data():
-    data_dict = None
-    with open(FULL_DATA_PICKLE, 'rb') as fp:
-        data_dict = pickle.load(fp)
-
-    data = [] # List to store the (features, label) tuples.
-    zipcodes = list(data_dict.keys())
-    for z in zipcodes:
-        # Just keep the tuple, zipcode is not needed for training.
-        datapoint = data_dict[z]
-        data.append(datapoint)
-
-    print('Read in', len(data), 'datapoints.')
-
-    return data
-
-def eval_model(model, loss, data, testType):
-    num_correct = 0
-    total = 0
-    for x, y in data:
-        if not np.isnan(x).any():
-            total+=1
-            x = Variable(torch.tensor(x).float())
-            pred = model(x)[0]
-            pred.unsqueeze_(0) # add a dimension before passing to criterion
-            _, predicted = torch.max(pred.data, 0)
-            num_correct = (num_correct+1 if (predicted[0] == y) else num_correct)
-    accuracy = 100.0 * num_correct / total
-    string = 'Loss: {}. ' + testType + ' Accuracy: {}.'
-    print(string.format(loss.item(), accuracy))
-
-    
-
 def optimize_nn(model, train_data, val_data, test_data):
-    """
-    Optimize neural network model on the training set
-    """
     print('*******Training*******')
     
-    #criterion = nn.NLLLoss()
+    # criterion = nn.CrossEntropyLoss(weight=torch.tensor([4.187, 1]))
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.003)
-    
-    num_epochs = 5
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+   
+    num_epochs = 10
     iter = 0
+    loss_list = []
+    accuracy_list = []
+    iters = []
+
+    val_loss_list = []
+    val_accuracy_list = []
+
     for epoch in range(num_epochs):
         running_loss = 0
         print('EPOCH', epoch)
-        for x,y in train_data:
-            #print('Iteration number: ', iter)
+        for x, y in train_data:
             if not np.isnan(x).any():
                 
-                #print('y is:', y)
-                # print('Zipcode:', ZIPCODES[i])
-       
                 # Load data as Variable
                 x = Variable(valueToTensor(np.asmatrix(x)))
                 y = Variable(valueToTensor(y))
-                # print('x is:', x)
-                #print('x is:', x)
     
                 # Clear gradients w.r.t parameters
                 optimizer.zero_grad()
     
                 # Forward pass to get output/logits
-                pred = model(x)
-                #assert not torch.isnan(pred).any(), pred
-                #print('pred is', pred.data)
+                pred = model.forward(x)
     
                 # Calculate Loss: softmax --> cross entropy loss
-                #import pdb; pdb.set_trace()
                 loss = criterion(pred.float(), y.long().unsqueeze(0))
-                #print('loss is: ', loss)
+                # loss = criterion(pred.float(), y)
     
                 # Backward pass to get gradients w.r.t parameters
                 loss.backward()
@@ -230,42 +119,89 @@ def optimize_nn(model, train_data, val_data, test_data):
                 running_loss += loss.item()
                 
                 iter += 1
+                # loss_list.append(loss.item())
                 if iter % 100 == 0:
                     # Calculate accuracy on train_data
                     num_correct = 0
                     total = 0
                     for x, y in train_data:
                         if not np.isnan(x).any():
-                            total+=1
+                            total += 1
                             x = Variable(valueToTensor(x))
-                            pred = model(x)
-                            pred.unsqueeze_(0) # add a dimension before passing to criterion
-                            _, predicted = torch.max(pred.data, 0)
-                            num_correct = (num_correct+1 if (predicted[0] == y) else num_correct)
-                            #print('num_correct:', num_correct, ', total', len(val_data))
+                            prediction = model.predict(x)
+
+                            num_correct = (num_correct + 1 if (prediction == y) 
+                                    else num_correct)
+
                     accuracy = 100.0 * num_correct / total
-                    print('Iteration: {}. Loss: {}. Training Accuracy: {}.'.format(iter, loss.item(), accuracy))
+                    print('Iteration: {}. Loss: {}. Training Accuracy: {}.'
+                            .format(iter, loss.item(), accuracy))
+
+                    accuracy_list.append(accuracy)
+                    loss_list.append(loss.item())
+                    iters.append(iter)
+                    if iter % 5000 == 0: 
+                        val_accuracy = eval_model_nn(model, loss, val_data,
+                                "Validation")
+                        val_accuracy_list.append(val_accuracy)
+                        val_loss_list.append(loss)
+                        plot_data(accuracy_list, loss_list, val_accuracy_list,
+                                val_loss_list, iters, iter)
                     
-                if iter == 500:
-                    
-                    eval_model_nn(model, loss, val_data, "Validation")
-                    return eval_model_nn(model, loss, test_data, "Testing")
-        #print(f"Training loss: {running_loss / len(train_data)}")
+    eval_model_nn(model, loss, test_data, "Test")
+    return loss
+
+def plot_data(accuracy_list, loss_list, val_accuracy_list, val_loss_list,
+        iters, iter):
+    plt.subplot(211)
+    plt.plot(iters, accuracy_list)
+    plt.xlabel('Iteration')
+    plt.ylabel('Accuracy')
+
+    plt.subplot(212)
+    plt.plot(iters, loss_list)
+    plt.xlabel('Iteration')
+    plt.ylabel('Loss')
+
+    # plt.subplot(313)
+    # plt.plot(len(val_accuracy_list), val_accuracy_list)
+    # plt.xlabel('Iteration')
+    # plt.ylabel('Validation accuracy')
+
+    filename = './logs/plot' + str(iter) + '.png'
+
+    plt.savefig(filename)
+    plt.close('all')
 
 def eval_model_nn(model, loss, data, testType):
     num_correct = 0
     total = 0
+    y_test = []
+    y_pred = []
     for x, y in data:
         if not np.isnan(x).any():
-            total+=1
+            total += 1
             x = Variable(torch.tensor(x).float())
-            pred = model(x)[0]
-            pred.unsqueeze_(0) # add a dimension before passing to criterion
-            _, predicted = torch.max(pred.data, 0)
-            num_correct = (num_correct+1 if (predicted == y) else num_correct)
+            prediction = model.predict(x)
+
+            num_correct = (num_correct + 1 if (prediction== y) 
+                    else num_correct)
+
+            y_test.append(y)
+            y_pred.append(prediction)
+
     accuracy = 100.0 * num_correct / total
     string = 'Loss: {}. ' + testType + ' Accuracy: {}.'
     print(string.format(loss.item(), accuracy))
+    print()
+    print('******Confusion matrix*******')
+    print(metrics.confusion_matrix(y_test, y_pred))
+    print('******Classification report*******')
+    print(metrics.classification_report(y_test, y_pred))
+    print('******Accuracy score*******')
+    print(metrics.accuracy_score(y_test, y_pred))
+    print()
+
     return accuracy
 
 if __name__ == "__main__":
