@@ -13,3 +13,9 @@ pip install -r requirements.txt
 ```
 
 Different classifier models can be run with `python <name of model>`, where all classifiers exist in the `models/` directory. For specific model directions, please refer to their respective `.py` files.
+
+## Data Instructions
+
+The `data_processing/` directory contains our suite of tools we create to build our joint dataset from Census features and USDA Food Accesss Research Atalas labels. Please refer to the documentation present in those files to to understand how to use them.
+
+Our fully cleaned dataset is present as a `.pickle` file in `data/full_data.pickle`. It is stored as python dict where zip code key values are mapped to their respective data point, which are represented as `(feature vector, label)` pairs.
